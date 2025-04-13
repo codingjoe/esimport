@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/codingjoe/esimport/issues"
   },
-  "homepage": "https://github.com/codingjoe/esimport#readme"
+  "homepage": "https://github.com/codingjoe/esimport#readme",
+  "dependencies": {
+    "esbuild": "*"
+  }
 }
