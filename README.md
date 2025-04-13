@@ -11,9 +11,9 @@
 ESM (ECMAScript Modules) is the future of JavaScript in the browser.
 It allows you to simply your development workflow and improve browser cacheing.
 
-esimport is
+**esimport** is
 
-* blazing fast (thanks to esbuild & golang),
+* blazing fast (thanks to [esbuild] & [go]),
 * easily setup,
 * secure,
 * and transpiles legacy packages.
@@ -27,3 +27,6 @@ and limits your vulnerability to supply chain attacks.
 # esimport <package-root> <output-dir>
 npx esimport . ./public/static/
 ```
+
+[esbuild]: https://esbuild.github.io/
+[go]: https://go.dev/
