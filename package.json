@@ -1,6 +1,6 @@
 {
   "name": "esimport",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Cutting edge ESM bundler and importmap generator",
   "type": "module",
   "bin": "esimport.mjs",

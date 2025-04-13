@@ -16,6 +16,8 @@ jobs:
           node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
+      - run: npm config set git-tag-version=false
+      - run: npm version ${{ github.event.release.tag_name }}
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
