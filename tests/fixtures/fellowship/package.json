@@ -1,0 +1,13 @@
+{
+  "name": "fellowship",
+  "version": "1.0.0",
+  "author": "Elrond",
+  "license": "MIT",
+  "description": "",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "hobbits/*.js": "./src/hobbits/*.js"
+  }
+}
