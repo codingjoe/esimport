@@ -6,20 +6,36 @@
   </picture>
 </p>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://web-platform-dx.github.io/web-features/assets/img/baseline-newly-word-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://web-platform-dx.github.io/web-features/assets/img/baseline-newly-word.svg">
+  <img alt="Baseline: Newly available" src="https://web-platform-dx.github.io/web-features/assets/img/baseline-newly-word.svg" height="32" align="right">
+</picture>
+
 ## Why
 
-ESM (ECMAScript Modules) is the future of JavaScript in the browser.
-It allows you to simply your development workflow and improve browser cacheing.
+ESM is the future. _No bundling, no bullsh\*t._
 
 **esimport** is
 
-* blazing fast (thanks to [esbuild] & [go]),
-* easily setup,
-* secure (sha512 hashes),
-* and transpiles legacy packages.
+- 🔥 blazing fast ([esbuild] & [go]),
+- 🏆 simpel & modern,
+- 🏴‍☠️ secure (sha512 hashes),
+- ☎️ and backwards compatible.
 
-In contrast to esm.sh it enables local development, dependabot support
-and limits your vulnerability to supply chain attacks.
+<details open>
+<summary>Comparison</summary>
+
+|                                 | esimport | esm.sh | jsDelivr |
+| ------------------------------- | -------- | ------ | -------- |
+| private package support         | ✅       | ❌     | ❌       |
+| offline development             | ✅       | ❌     | ❌       |
+| dependabot support              | ✅       | ❌     | ❌       |
+| integrity support               | ✅       | ❌     | ❌       |
+| supply chain attacks protection | ✅       | ❌     | ❌       |
+| highly efficient client caching | ✅       | ✅     | ✅       |
+
+</details>
 
 ## Usage
 
@@ -29,7 +45,6 @@ npx esimport . ./public/static/
 ```
 
 That's it!
-
 
 ### Output
 
@@ -138,4 +153,4 @@ $ jq '.' out/imports.json
 
 [esbuild]: https://esbuild.github.io/
 [go]: https://go.dev/
-[Lit]: https://lit.dev/
+[lit]: https://lit.dev/
