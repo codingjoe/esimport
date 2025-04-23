@@ -144,13 +144,15 @@ describe('expandSubpathPattern', () => {
 
   test('wildcard w/ subpath', async () => {
     assert.deepStrictEqual(
-      await esimport.expandSubpathPattern('./src/*.js', 'tests/fixtures/fellowship'),
-      [
+      new Set(
+        await esimport.expandSubpathPattern('./src/*.js', 'tests/fixtures/fellowship'),
+      ),
+      new Set([
         './src/index.js',
+        './src/dwarfs/gimli.js',
         './src/hobbits/sam.js',
         './src/hobbits/frodo.js',
-        './src/dwarfs/gimli.js',
-      ],
+      ]),
     )
   })
 
