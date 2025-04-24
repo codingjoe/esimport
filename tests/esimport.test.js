@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import * as process from 'node:process'
+import path from 'node:path'
 import { describe, test } from 'node:test'
 
 import * as esimport from 'esimport'
@@ -231,7 +233,10 @@ describe('expandEntryPoints', () => {
 describe('bundleExports', () => {
   test('exports', async () => {
     assert.deepStrictEqual(
-      await esimport.bundleExports('tests/fixtures/fellowship', 'tests/fixtures/'),
+      await esimport.bundleExports(
+        path.join(process.cwd(), 'tests/fixtures/fellowship'),
+        path.join(process.cwd(), 'tests/fixtures'),
+      ),
       {
         fellowship: 'fellowship/src/index.js',
         'fellowship/hobbits/frodo.js': 'fellowship/src/hobbits/frodo.js',
