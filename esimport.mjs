@@ -135,10 +135,11 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
 }
 
 export async function bundleExports(cwd, projectRoot) {
-  const packageInfo =
-    (await import('./' + path.join(cwd, 'package.json'), { with: { type: 'json' } }))[
-      'default'
-    ]
+  const packageInfo = (await import('file://' + path.join(cwd, 'package.json'), {
+    with: { type: 'json' },
+  }))[
+    'default'
+  ]
   return await expandEntryPoints(
     packageInfo.name,
     packageInfo.exports || { '.': packageInfo.main },
@@ -148,10 +149,16 @@ export async function bundleExports(cwd, projectRoot) {
 }
 
 async function main(argv) {
-  const projectRoot = argv[2]
-  const outputDir = argv[3]
+  const projectRoot = path.isAbsolute(argv[2])
+    ? argv[2]
+    : path.join(process.cwd(), argv[2])
+  const outputDir = path.isAbsolute(argv[3])
+    ? argv[3]
+    : path.join(process.cwd(), argv[3])
   const rootPackage =
-    (await import(path.join(projectRoot, 'package.json'), { with: { type: 'json' } }))[
+    (await import('file://' + path.join(projectRoot, 'package.json'), {
+      with: { type: 'json' },
+    }))[
       'default'
     ]
 
