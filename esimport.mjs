@@ -218,6 +218,9 @@ async function main(argv) {
   await fs.writeFile(path.join(outputDir, 'imports.json'), JSON.stringify(importMap))
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] === fileURLToPath(import.meta.url) ||
+  path.basename(process.argv[1]) === 'esimport' // npx
+) {
   await main(process.argv)
 }
