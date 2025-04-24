@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Cutting edge ESM bundler and importmap generator",
   "type": "module",
-  "bin": "esimport.mjs",
+  "bin": "./esimport.mjs",
   "exports": "./esimport.mjs",
   "scripts": {
     "test": "node --test --experimental-test-coverage"
