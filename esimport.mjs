@@ -6,7 +6,7 @@
  *     esimport <package-root> <output-dir>
  */
 import * as esbuild from 'esbuild'
-import * as process from 'node:process'
+import process from 'node:process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -148,6 +148,33 @@ export async function bundleExports(cwd, projectRoot) {
   )
 }
 
+async function build(projectRoot, outputDir, context, reverseEntryPointMap) {
+  const result = await context.rebuild()
+
+  const entryPointMap = {}
+  for (const [name, output] of Object.entries(result.metafile.outputs)) {
+    if (output.entryPoint !== undefined) {
+      entryPointMap[
+        reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
+      ] = path.relative(outputDir, name)
+    }
+  }
+
+  const integrity = {}
+  for (const value of Object.values(entryPointMap)) {
+    const filePath = path.join(outputDir, value)
+    const fileContent = await fs.readFile(filePath)
+    integrity[value] = await integrityHash(fileContent)
+  }
+
+  const importMap = {
+    imports: entryPointMap,
+    integrity,
+  }
+
+  await fs.writeFile(path.join(outputDir, 'importmap.json'), JSON.stringify(importMap))
+}
+
 async function main(argv) {
   const projectRoot = path.isAbsolute(argv[2])
     ? argv[2]
@@ -183,7 +210,7 @@ async function main(argv) {
   const reverseEntryPointMap = Object.entries(entryPoints)
     .reduce((obj, [key, value]) => ({ ...obj, [path.normalize(value)]: key }), {})
 
-  const result = await esbuild.build({
+  const context = await esbuild.context({
     entryPoints: Object.values(entryPoints).map((entryPoint) =>
       path.join(projectRoot, entryPoint)
     ),
@@ -201,28 +228,27 @@ async function main(argv) {
     metafile: true,
   })
 
-  const entryPointMap = {}
-  for (const [name, output] of Object.entries(result.metafile.outputs)) {
-    if (output.entryPoint !== undefined) {
-      entryPointMap[
-        reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
-      ] = path.relative(outputDir, name)
+  await build(projectRoot, outputDir, context, reverseEntryPointMap)
+
+  if (argv[4] !== undefined) {
+    const ac = new AbortController()
+    const { signal } = ac
+    const watcher = fs.watch(projectRoot, { signal, recursive: true })
+    process.on('SIGINT', async () => ac.abort())
+    process.on('beforeExit', async () => ac.abort())
+    try {
+      for await (const event of watcher) {
+        await build(projectRoot, outputDir, context, reverseEntryPointMap)
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return await context.dispose()
+      }
+      throw err
     }
+  } else {
+    return await context.dispose()
   }
-
-  const integrity = {}
-  for (const value of Object.values(entryPointMap)) {
-    const filePath = path.join(outputDir, value)
-    const fileContent = await fs.readFile(filePath)
-    integrity[value] = await integrityHash(fileContent)
-  }
-
-  const importMap = {
-    imports: entryPointMap,
-    integrity,
-  }
-
-  await fs.writeFile(path.join(outputDir, 'imports.json'), JSON.stringify(importMap))
 }
 
 if (
