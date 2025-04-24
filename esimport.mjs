@@ -150,6 +150,7 @@ export async function bundleExports(cwd, projectRoot) {
 
 async function build(projectRoot, outputDir, context, reverseEntryPointMap) {
   const result = await context.rebuild()
+  console.info(`${Object.keys(result.metafile.inputs).length} ES modules processed.`)
 
   const entryPointMap = {}
   for (const [name, output] of Object.entries(result.metafile.outputs)) {
