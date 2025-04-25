@@ -252,6 +252,27 @@ describe('expandEntryPoints', () => {
       },
     )
   })
+
+  test('exclude', async () => {
+    assert.deepStrictEqual(
+      await esimport.expandEntryPoints(
+        'fellowship',
+        {
+          '.': './src/index.js',
+          './index': null,
+          './*': './src/*.js',
+          './dwarfs/*': null,
+        },
+        'tests/fixtures/fellowship',
+        'tests/fixtures/fellowship',
+      ),
+      {
+        fellowship: 'src/index.js',
+        'fellowship/hobbits/frodo': 'src/hobbits/frodo.js',
+        'fellowship/hobbits/sam': 'src/hobbits/sam.js',
+      },
+    )
+  })
 })
 
 describe('bundleExports', () => {

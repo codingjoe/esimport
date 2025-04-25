@@ -26,6 +26,7 @@
   "homepage": "https://github.com/codingjoe/esimport#readme",
   "dependencies": {
     "esbuild": "*",
-    "glob": "*"
+    "glob": "*",
+    "minimatch": "^10.0.1"
   }
 }
