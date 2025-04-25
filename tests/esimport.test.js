@@ -90,6 +90,18 @@ describe('resolveImport', () => {
     )
   })
 
+  test('list', () => {
+    assert.strictEqual(
+      esimport.resolveImport([{
+        import: {
+          types: 'foo.d',
+          default: 'foo.mjs',
+        },
+      }, 'foo.cjs']),
+      'foo.mjs',
+    )
+  })
+
   test('no entry point', () => {
     assert.throws(() => esimport.resolveImport({}), /No valid entry point found/)
   })
@@ -121,6 +133,18 @@ describe('resolveEntryPoints', () => {
       {
         'fellowship/ring': './ring.js',
         'fellowship/gandalf': './gandalf.js',
+      },
+    )
+  })
+
+  test('single entrypoint object', () => {
+    assert.deepStrictEqual(
+      esimport.resolveEntryPoints('fellowship', {
+        default: './ring.mjs',
+        node: './ring.cjs',
+      }),
+      {
+        'fellowship': './ring.mjs',
       },
     )
   })
