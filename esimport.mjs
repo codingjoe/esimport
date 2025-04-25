@@ -29,6 +29,10 @@ export async function integrityHash(data, algorithm = 'SHA-512') {
 export function resolveImport(entryPoint) {
   if (typeof entryPoint === 'string') {
     return entryPoint
+  } else if (Array.isArray(entryPoint)) {
+    for (const value of entryPoint.filter((e) => typeof e === 'object')) {
+      return resolveImport(value)
+    }
   }
 
   for (const key of ['browser', 'import', 'default']) {
@@ -37,7 +41,7 @@ export function resolveImport(entryPoint) {
     }
   }
 
-  throw new Error('No valid entry point found')
+  throw new Error(`No valid entry point found: ${entryPoint}`)
 }
 
 /**
@@ -73,12 +77,12 @@ export function path2EntryPoint(filePath, pathPattern, entryPointPattern) {
  * @param cwd {string}: The current working directory.
  */
 export async function expandSubpathPattern(pattern, cwd) {
-  return await glob(pattern.replace(/\*/, '{*,**/*}'), {
+  return (await glob(pattern.replace(/\*/, '{*,**/*}'), {
     cwd,
     nodir: true,
     dotRelative: true,
     ignore: 'node_modules/**',
-  })
+  })).filter((filePath) => /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath))
 }
 
 /**
@@ -101,11 +105,15 @@ export function resolveEntryPoints(pkgName, entryPoints) {
       ) => [path.join(pkgName, entryPoint), resolveImport(entryPoint)]),
     )
   } else if (typeof entryPoints === 'object') {
-    return Object.entries(entryPoints).filter(([key, value]) => value !== undefined)
-      .reduce((acc, [key, value]) => {
-        acc[path.join(pkgName, key)] = resolveImport(value)
-        return acc
-      }, {})
+    try {
+      return { [pkgName]: resolveImport(entryPoints) }
+    } catch (e) {
+      return Object.entries(entryPoints).filter(([key, value]) => value !== undefined)
+        .reduce((acc, [key, value]) => {
+          acc[path.join(pkgName, key)] = resolveImport(value)
+          return acc
+        }, {})
+    }
   } else {
     throw new Error(`Invalid entry points for package ${pkgName}: ${entryPoints}`)
   }
@@ -142,7 +150,8 @@ export async function bundleExports(cwd, projectRoot) {
   ]
   return await expandEntryPoints(
     packageInfo.name,
-    packageInfo.exports || { '.': packageInfo.main },
+    packageInfo.exports ||
+      { '.': packageInfo.browser || packageInfo.module || packageInfo.main },
     cwd,
     projectRoot,
   )
@@ -217,7 +226,13 @@ async function main(argv) {
     ),
     bundle: true,
     format: 'esm',
-    external: Object.keys(entryPoints),
+    external: [
+      ...Object.keys({
+        ...entryPoints,
+        ...rootPackage.dependencies,
+        ...rootPackage.peerDependencies,
+      }),
+    ],
     outbase: projectRoot,
     outdir: outputDir,
     entryNames: '[dir]/[name]-[hash]',
