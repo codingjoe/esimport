@@ -23,4 +23,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: javascript
-          file: lcov.txt
+          files: lcov.txt

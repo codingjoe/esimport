@@ -11,6 +11,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { glob } from 'glob'
+import { minimatch } from 'minimatch'
 
 export async function integrityHash(data, algorithm = 'SHA-512') {
   const ec = new TextEncoder()
@@ -27,14 +28,13 @@ export async function integrityHash(data, algorithm = 'SHA-512') {
  * @param entryPoint {object|string|string[]}: The entry points (import|require|default).
  */
 export function resolveImport(entryPoint) {
-  if (typeof entryPoint === 'string') {
+  if (typeof entryPoint === 'string' || entryPoint === null) {
     return entryPoint
   } else if (Array.isArray(entryPoint)) {
     for (const value of entryPoint.filter((e) => typeof e === 'object')) {
       return resolveImport(value)
     }
   }
-
   for (const key of ['browser', 'import', 'default']) {
     if (entryPoint.hasOwnProperty(key) && entryPoint[key] !== undefined) {
       return resolveImport(entryPoint[key])
@@ -129,14 +129,28 @@ export function resolveEntryPoints(pkgName, entryPoints) {
  */
 export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) {
   const entryPointMap = {}
+  const excludePatterns = []
   for (
     const [entryPointPattern, pathPattern] of Object.entries(
       resolveEntryPoints(pkgName, entryPoints),
     )
   ) {
-    for (const subpath of await expandSubpathPattern(pathPattern, cwd)) {
-      const importPath = path2EntryPoint(subpath, pathPattern, entryPointPattern)
-      entryPointMap[importPath] = path.relative(projectRoot, path.join(cwd, subpath))
+    if (pathPattern === null) {
+      excludePatterns.push(entryPointPattern)
+    } else {
+      for (const subpath of await expandSubpathPattern(pathPattern, cwd)) {
+        const importPath = path2EntryPoint(subpath, pathPattern, entryPointPattern)
+        entryPointMap[importPath] = path.relative(projectRoot, path.join(cwd, subpath))
+      }
+    }
+  }
+  for (const key of Object.keys(entryPointMap)) {
+    if (
+      excludePatterns.some((pattern) =>
+        minimatch(key, pattern.replace(/\*/, '{*,**/*}'), { nocomment: true })
+      )
+    ) {
+      delete entryPointMap[key]
     }
   }
   return entryPointMap
