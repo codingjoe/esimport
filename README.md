@@ -16,20 +16,15 @@
 
 ESM is the future. _No bundling, no bullsh\*t._
 
-**esimport** is
+**esimport** is fast 🔥, simpel 🧃, secure 🏴‍☠️, and backwards compatible ☎️.
 
-- 🔥 blazing fast ([esbuild] & [go]),
-- 🏆 simpel & modern,
-- 🏴‍☠️ secure (sha512 hashes),
-- ☎️ and backwards compatible.
-
-<details open>
-<summary>Comparison</summary>
+<details>
+<summary>Comparison <em>esimport</em> vs <em>esh.sh</em> vs <em>jsDelivr</em></summary>
 
 |                                 | esimport | esm.sh | jsDelivr |
 | ------------------------------- | -------- | ------ | -------- |
 | private package support         | ✅       | ❌     | ❌       |
-| offline development             | ✅       | ❌     | ❌       |
+| offline development             | ✅       | ⚠️     | ❌       |
 | dependabot support              | ✅       | ❌     | ❌       |
 | integrity support               | ✅       | ❌     | ❌       |
 | supply chain attacks protection | ✅       | ❌     | ❌       |
@@ -83,6 +78,4 @@ $ jq '.' out/importmap.json
 }
 ```
 
-[esbuild]: https://esbuild.github.io/
-[go]: https://go.dev/
 [lit]: https://lit.dev/
