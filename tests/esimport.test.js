@@ -1,36 +1,37 @@
 import assert from 'node:assert'
-import * as process from 'node:process'
+import process from 'node:process'
 import path from 'node:path'
-import { describe, test } from 'node:test'
+import { describe, mock, test } from 'node:test'
 
 import * as esimport from 'esimport'
+import { run } from 'esimport'
 
 describe('integrityHash', () => {
-  test('SHA-512', async () => {
-    const hash = await esimport.integrityHash('foo')
+  test('SHA-512', () => {
+    const hash = esimport.integrityHash('foo')
     assert.strictEqual(
       hash,
       'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
     )
   })
 
-  test('SHA-384', async () => {
-    const hash = await esimport.integrityHash('foo', 'SHA-384')
+  test('SHA-384', () => {
+    const hash = esimport.integrityHash('foo', 'sha384')
     assert.strictEqual(
       hash,
       'sha384-mMEf/f3VQGdrGhN8saIrKnA1DJpEFx1rEYDGvly7LuP3nVMsih3Z7y6OCOdSo7q7',
     )
   })
 
-  test('SHA-256', async () => {
-    const hash = await esimport.integrityHash('foo', 'SHA-256')
+  test('SHA-256', () => {
+    const hash = esimport.integrityHash('foo', 'sha256')
     assert.strictEqual(hash, 'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=')
   })
 
   test('invalid algorithm', async () => {
-    await assert.rejects(
+    await assert.throws(
       () => esimport.integrityHash('foo', 'invalid'),
-      /Unrecognized algorithm name/,
+      /Digest method not supported/,
     )
   })
 })
@@ -288,5 +289,78 @@ describe('bundleExports', () => {
         'fellowship/hobbits/sam.js': 'fellowship/src/hobbits/sam.js',
       },
     )
+  })
+})
+
+describe('invertObject', () => {
+  test('invert object', () => {
+    assert.deepStrictEqual(
+      esimport.invertObject({
+        foo: 'bar',
+        baz: 'qux',
+      }),
+      {
+        bar: 'foo',
+        qux: 'baz',
+      },
+    )
+  })
+})
+
+describe('compileEntryPoints', () => {
+  test('compile entry points', async () => {
+    assert.deepStrictEqual(
+      await esimport.compileEntryPoints(
+        path.join(import.meta.dirname, 'fixtures/fellowship'),
+      ),
+      [
+        {
+          fellowship: 'src/index.js',
+          'fellowship/hobbits/sam.js': 'src/hobbits/sam.js',
+          'fellowship/hobbits/frodo.js': 'src/hobbits/frodo.js',
+        },
+        [
+          'fellowship',
+          'fellowship/hobbits/sam.js',
+          'fellowship/hobbits/frodo.js',
+        ],
+      ],
+    )
+  })
+})
+
+describe('run', () => {
+  test('run', async () => {
+    const result = await esimport.run(
+      path.join(import.meta.dirname, 'fixtures/fellowship'),
+      path.join(import.meta.dirname, 'fixtures/out'),
+      { watch: false, verbose: true },
+    )
+    assert.deepStrictEqual(result, {
+      imports: {
+        fellowship: 'src/index-65CJ5JZZ.js',
+        'fellowship/hobbits/sam.js': 'src/hobbits/sam-HVCYM3TX.js',
+        'fellowship/hobbits/frodo.js': 'src/hobbits/frodo-Y66DTEQD.js',
+      },
+      integrity: {
+        'src/index-65CJ5JZZ.js':
+          'sha512-4dGbBKk7wAWcuqOG5Ms1799k7I4J5oAuACxeKoD/0mySiZBpQ+7Kj8Ek8mF1K2RpLbEfiy7hNNEi/ypROgGIDw==',
+        'src/hobbits/sam-HVCYM3TX.js':
+          'sha512-+5h9tWqEGxe+kPHltdpoIHZ9iNJUbs+jEZ+kJF4wYtXzAJy3I3E5QozhZkITxKvuhA5UEBHXglC6Fcwtu0tiyQ==',
+        'src/hobbits/frodo-Y66DTEQD.js':
+          'sha512-lYAThqDUmVGDQjM2auqbARBcJnw6mbxvKV4yx+MMOU7poP64kkK1BgM5XKY/za2D3rXbc/Mvg0Lc+CDsU9cDQA==',
+      },
+    })
+  })
+})
+
+describe('main', () => {
+  test('main', async () => {
+    await esimport.main([
+      'node',
+      import.meta.dirname,
+      path.join(import.meta.dirname, 'fixtures/fellowship'),
+      path.join(import.meta.dirname, 'fixtures/out'),
+    ])
   })
 })

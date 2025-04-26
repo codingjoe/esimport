@@ -1,12 +1,12 @@
 {
   "name": "esimport",
   "version": "0.1.0",
-  "description": "Cutting edge ESM bundler and importmap generator",
+  "description": "Blazing fast ESM compiler and importmap generator",
   "type": "module",
   "bin": "./esimport.mjs",
   "exports": "./esimport.mjs",
   "scripts": {
-    "test": "node --test --experimental-test-coverage"
+    "test": "node --test --experimental-test-coverage --test-coverage-exclude=tests/*"
   },
   "repository": {
     "type": "git",
@@ -25,8 +25,9 @@
   },
   "homepage": "https://github.com/codingjoe/esimport#readme",
   "dependencies": {
+    "commander": "*",
     "esbuild": "*",
     "glob": "*",
-    "minimatch": "^10.0.1"
+    "minimatch": "*"
   }
 }

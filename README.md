@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./images/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="./images/logo-light.svg">
-    <img alt="esimport: Cutting edge ESM bundler and importmap generator" src="./images/logo-light.svg">
+    <img alt="esimport: Blazing fast ESM compiler and importmap generator" src="./images/logo-light.svg">
   </picture>
 </p>
 
@@ -40,7 +40,7 @@ ESM is the future. _No bundling, no bullsh\*t._
 ## Usage
 
 ```bash
-# esimport <package-root> <output-dir> [--watch]
+# esimport <package-root> <output-dir> [--watch,--verbose,--help]
 npx esimport . ./public/static/
 ```
 

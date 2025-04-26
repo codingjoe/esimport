@@ -8,6 +8,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "hobbits/*.js": "./src/hobbits/*.js"
+    "./hobbits/*.js": "./src/hobbits/*.js"
   }
 }
