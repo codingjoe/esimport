@@ -60,6 +60,28 @@ describe('path2Import', () => {
   })
 })
 
+describe('isParentDir', () => {
+  test('is parent dir', () => {
+    assert.strictEqual(
+      esimport.isParentDir(
+        path.join(process.cwd(), 'tests/fixtures/fellowship'),
+        path.join(process.cwd(), 'tests/fixtures/fellowship/src'),
+      ),
+      true,
+    )
+  })
+
+  test('is not parent dir', () => {
+    assert.strictEqual(
+      esimport.isParentDir(
+        path.join(process.cwd(), 'tests/fixtures/fellowship/src'),
+        path.join(process.cwd(), 'tests/fixtures/fellowship'),
+      ),
+      false,
+    )
+  })
+})
+
 describe('resolveImport', () => {
   test('string', () => {
     assert.strictEqual(esimport.resolveImport('foo'), 'foo')

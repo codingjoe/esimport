@@ -29,6 +29,18 @@ export function integrityHash(data, algorithm = 'sha512') {
 }
 
 /**
+ * The given path is inside another given parent path.
+ *
+ * @param parent {string} - Absolute parent path.
+ * @param child {string} - Absolute child path.
+ * @return {boolean} - True, if child inside the parent path.
+ */
+export function isParentDir(parent, child) {
+  const relative = path.relative(parent, child)
+  return (relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+/**
  * Invert an object's keys and values.
  * @param obj {Object.<string,string>} - The object to invert.
  * @return {Object.<string,string>} - The inverse of the given object.
@@ -254,12 +266,14 @@ export async function watch(
 ) {
   const ac = new AbortController()
   const { signal } = ac
-  const watcher = fs.watch(outputDir, { signal, recursive: true })
+  const watcher = fs.watch(projectRoot, { signal, recursive: true })
   process.on('SIGINT', async () => ac.abort())
   process.on('beforeExit', async () => ac.abort())
   try {
     for await (const event of watcher) {
-      await build(projectRoot, outputDir, context, entryPointSourceMap, options)
+      if (!isParentDir(outputDir, path.join(projectRoot, event.filename))) {
+        await build(projectRoot, outputDir, context, entryPointSourceMap, options)
+      }
     }
   } catch (err) {
     if (err.name === 'AbortError') {
