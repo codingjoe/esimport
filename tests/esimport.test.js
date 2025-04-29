@@ -360,16 +360,16 @@ describe('run', () => {
     )
     assert.deepStrictEqual(result, {
       imports: {
-        fellowship: 'src/index-MTLAIIAI.js',
-        'fellowship/hobbits/sam.js': 'src/hobbits/sam-LVWKD6NO.js',
-        'fellowship/hobbits/frodo.js': 'src/hobbits/frodo-7EUGPPXN.js',
+        fellowship: './src/index-MTLAIIAI.js',
+        'fellowship/hobbits/sam.js': './src/hobbits/sam-LVWKD6NO.js',
+        'fellowship/hobbits/frodo.js': './src/hobbits/frodo-7EUGPPXN.js',
       },
       integrity: {
-        'src/index-MTLAIIAI.js':
+        './src/index-MTLAIIAI.js':
           'sha512-32SQGLXQb+loEHapkAaKYexoCzRiLz1mS/WHHTEqSi+JWe5XBvLEOizSWXYGdKRnXQqjWsm7Co4326h7grz/Mg==',
-        'src/hobbits/sam-LVWKD6NO.js':
+        './src/hobbits/sam-LVWKD6NO.js':
           'sha512-PtjdOvmN761rp0fqUNGn2hchVI6t+27o2O/5YhY6Ypvhhn8WC+RUqCpL8RRvg2zZz+v54HLplDukLXXZ9s1XUA==',
-        'src/hobbits/frodo-7EUGPPXN.js':
+        './src/hobbits/frodo-7EUGPPXN.js':
           'sha512-UpMiJ/zRrbPDMpbjcdnGBYD8/qP2ZuAl9mHZXgA1A1DCYRCAN2WZb+T3CNrQKVOwbPH3rrEUxGZ156ev3vDmdg==',
       },
     })

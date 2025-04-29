@@ -226,7 +226,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
     if (output.entryPoint !== undefined) {
       entryPointOutputMap[
         reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
-      ] = path.relative(outputDir, name)
+      ] = `./${path.relative(outputDir, name)}`
     }
   }
 
