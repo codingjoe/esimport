@@ -12,9 +12,11 @@ import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { glob } from 'glob'
 import { minimatch } from 'minimatch'
-import { Command } from 'commander'
+import * as commander from 'commander'
 import esimportPkgInfo from './package.json' with { type: 'json' }
 import crypto from 'node:crypto'
+import handler from 'serve-handler'
+import * as http from 'node:http'
 
 /**
  * Generate a hash of the given data using the specified algorithm.
@@ -219,7 +221,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
 
   const reverseEntryPointMap = invertObject(entryPointSourceMap)
 
-  const entryPointOutputMap = {}
+  let entryPointOutputMap = {}
   for (const [name, output] of Object.entries(result.metafile.outputs)) {
     if (output.entryPoint !== undefined) {
       entryPointOutputMap[
@@ -228,11 +230,22 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
     }
   }
 
+  const port = options.serve === true ? 3000 : options.serve
+
   const integrity = {}
   for (const value of Object.values(entryPointOutputMap)) {
     const filePath = path.join(outputDir, value)
     const fileContent = await fs.readFile(filePath)
-    integrity[value] = integrityHash(fileContent)
+    integrity[options.serve ? path.join(`http://localhost:${port}`, value) : value] =
+      integrityHash(fileContent)
+  }
+
+  if (options.serve) {
+    entryPointOutputMap = Object.fromEntries(
+      Object.entries(entryPointOutputMap).map((
+        [key, value],
+      ) => [key, path.join(`http://localhost:${port}`, value)]),
+    )
   }
 
   const importMap = {
@@ -255,6 +268,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
  * @param context {esbuild.BuildContext} - The esbuild context.
  * @param entryPointSourceMap {Object.<string,string>} - A map of entry points to their file paths.
  * @param options {Object} - The options for the build process.
+ * @param server {http.Server} - A server object to be gracefully closed on interrupt.
  * @return {Promise<*>}
  */
 export async function watch(
@@ -263,12 +277,18 @@ export async function watch(
   context,
   entryPointSourceMap,
   options,
+  server,
 ) {
   const ac = new AbortController()
   const { signal } = ac
   const watcher = fs.watch(projectRoot, { signal, recursive: true })
-  process.on('SIGINT', async () => ac.abort())
-  process.on('beforeExit', async () => ac.abort())
+  process.on('SIGINT', async () => {
+    ac.abort()
+    if (server !== undefined) {
+      console.info('Gracefully shutting down. Please wait...')
+      await server.close(process.exit)
+    }
+  })
   try {
     for await (const event of watcher) {
       if (!isParentDir(outputDir, path.join(projectRoot, event.filename))) {
@@ -345,6 +365,10 @@ export async function run(packageDir, outputDir, options) {
     external,
     outbase: packageDir,
     outdir: outputDir,
+    banner: {
+      js: `/* Build with esimport version ${esimportPkgInfo.version} */`,
+      css: `/* Build with esimport version ${esimportPkgInfo.version} */`,
+    },
     entryNames: '[dir]/[name]-[hash]',
     minify: true,
     sourcemap: true,
@@ -355,7 +379,34 @@ export async function run(packageDir, outputDir, options) {
   })
 
   const importMap = await build(packageDir, outputDir, context, entryPoints, options)
-  if (options.watch) {
+
+  if (options.serve) {
+    const server = http.createServer((request, response) => {
+      handler(request, response, {
+        public: outputDir,
+        headers: [{
+          source: '**/*.@(js|css|map)',
+          headers: [{
+            key: 'Cache-Control',
+            value: 'max-age=315360000, public, immutable',
+          }],
+        }, {
+          source: '{**/*,*}',
+          headers: [{
+            key: 'Connection',
+            value: 'close',
+          }],
+        }],
+        etag: true,
+      })
+    })
+
+    const port = options.serve === true ? 3000 : options.serve
+    server.listen(port, async () => {
+      console.info(`Running at http://localhost:${port}/`)
+      await watch(packageDir, outputDir, context, entryPoints, options, server)
+    })
+  } else if (options.watch) {
     await watch(packageDir, outputDir, context, entryPoints, options)
   } else {
     await context.dispose()
@@ -364,12 +415,29 @@ export async function run(packageDir, outputDir, options) {
 }
 
 /**
+ * Parse string to integer and check if it's a valid port.
+ *
+ * @param value {string} -
+ * @param dummyPrevious
+ * @return {number}
+ */
+export function parsePort(value, dummyPrevious) {
+  const parsedValue = parseInt(value, 10)
+  if (isNaN(parsedValue)) {
+    throw new commander.InvalidArgumentError('Not a number.')
+  } else if (!(49151 >= parsedValue && parsedValue > 1024)) {
+    throw new commander.InvalidArgumentError('Port must be between 1024 and 49151.')
+  }
+  return parsedValue
+}
+
+/**
  * Main function to run the esimport command line tool.
  * @param argv {string[]} - The command line arguments (process.argv).
  * @return {Promise<void>}
  */
 export async function main(argv) {
-  const program = new Command('esimport')
+  const program = new commander.Command('esimport')
   await program
     .description(
       'Compile a project into ES modules and generate a browser importmap.',
@@ -377,6 +445,11 @@ export async function main(argv) {
     .version(esimportPkgInfo.version)
     .option('-w, --watch', 'Watch for changes and rebuild.')
     .option('-v, --verbose', 'Verbose output.')
+    .option(
+      '-s , --serve [port]',
+      'Serve ES modules via HTTP for local development.',
+      parsePort,
+    )
     .argument(
       '<package-dir>',
       'Path to package that will transformed. The directory must contain a valid package.json file.',

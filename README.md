@@ -35,8 +35,8 @@ ESM is the future. _No bundling, no bullsh\*t._
 ## Usage
 
 ```bash
-# esimport <package-root> <output-dir> [--watch,--verbose,--help]
-npx esimport . ./public/static/
+# esimport <package-root> <output-dir> [--watch,--serve,--verbose,--help]
+npx esimport . ./public/static/  --serve
 ```
 
 That's it!

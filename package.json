@@ -28,6 +28,7 @@
     "commander": "*",
     "esbuild": "*",
     "glob": "*",
-    "minimatch": "*"
+    "minimatch": "*",
+    "serve-handler": "*"
   }
 }
