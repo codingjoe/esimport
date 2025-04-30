@@ -25,10 +25,10 @@
   },
   "homepage": "https://github.com/codingjoe/esimport#readme",
   "dependencies": {
-    "commander": "*",
-    "esbuild": "*",
-    "glob": "*",
-    "minimatch": "*",
-    "serve-handler": "*"
+    "commander": ">=13.0.0",
+    "esbuild": ">=0.10.0",
+    "glob": ">=9.0.0",
+    "minimatch": ">=6.0.0",
+    "serve-handler": ">=5.0.0"
   }
 }
