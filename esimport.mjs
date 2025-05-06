@@ -457,7 +457,7 @@ export async function run(packageDir, outputDir, options) {
     minify: true,
     sourcemap: true,
     platform: 'browser',
-    target: 'es2020',
+    target: 'es2022',
     allowOverwrite: true,
     metafile: true,
     plugins: [new UnenvResolvePlugin()],
