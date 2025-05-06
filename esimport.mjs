@@ -459,8 +459,8 @@ export async function run(packageDir, outputDir, options) {
     outbase: packageDir,
     outdir: outputDir,
     banner: {
-      js: `/* Build with esimport version ${esimportPkgInfo.version} */`,
-      css: `/* Build with esimport version ${esimportPkgInfo.version} */`,
+      js: `/* Build with esimport - https://github.com/codingjoe/esimport */`,
+      css: `/* Build with esimport - https://github.com/codingjoe/esimport */`,
     },
     entryNames: '[dir]/[name]-[hash]',
     minify: true,
