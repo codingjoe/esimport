@@ -405,6 +405,21 @@ export class UnenvResolvePlugin extends Object {
     'zlib',
   ]
 
+  static nodeRuntimeModulesRegex = new RegExp(
+    `^((node:)?${
+      UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
+        i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      ).join('|')
+    })$`,
+  )
+
+  static unenvCallback = async (args) => {
+    return {
+      path: url.fileURLToPath(import.meta.resolve(`unenv/node/${args.path}`)),
+      external: true,
+    }
+  }
+
   name = 'unenv'
 
   setup = (build) => {
@@ -413,19 +428,6 @@ export class UnenvResolvePlugin extends Object {
     }, UnenvResolvePlugin.unenvCallback)
   }
 
-  static nodeRuntimeModulesRegex = new RegExp(
-    `^((node:)?${
-      UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
-        i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      ).join('|')
-    })$`
-  )
-  static unenvCallback = async (args) => {
-    return {
-      path: url.fileURLToPath(import.meta.resolve(`unenv/node/${args.path}`)),
-      external: true,
-    }
-  }
 }
 
 export async function run(packageDir, outputDir, options) {
