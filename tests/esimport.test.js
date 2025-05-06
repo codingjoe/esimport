@@ -370,7 +370,18 @@ describe('UnenvResolvePlugin', () => {
     assert.deepStrictEqual(
       await esimport.UnenvResolvePlugin.unenvCallback({ path: 'url' }),
       {
-        external: true,
+        external: false,
+        path: path.join(
+          import.meta.dirname,
+          `../node_modules/unenv/dist/runtime/node/url.mjs`,
+        ),
+      },
+    )
+
+    assert.deepStrictEqual(
+      await esimport.UnenvResolvePlugin.unenvCallback({ path: 'node:url' }),
+      {
+        external: false,
         path: path.join(
           import.meta.dirname,
           `../node_modules/unenv/dist/runtime/node/url.mjs`,
