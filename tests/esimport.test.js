@@ -389,17 +389,17 @@ describe('run', () => {
     )
     assert.deepStrictEqual(result, {
       imports: {
-        fellowship: './src/index-MTLAIIAI.js',
-        'fellowship/hobbits/sam.js': './src/hobbits/sam-LVWKD6NO.js',
-        'fellowship/hobbits/frodo.js': './src/hobbits/frodo-7EUGPPXN.js',
+        fellowship: './src/index-5CNBNISI.js',
+        'fellowship/hobbits/sam.js': './src/hobbits/sam-7ELSRYCS.js',
+        'fellowship/hobbits/frodo.js': './src/hobbits/frodo-FZ7H44GR.js',
       },
       integrity: {
-        './src/index-MTLAIIAI.js':
-          'sha512-32SQGLXQb+loEHapkAaKYexoCzRiLz1mS/WHHTEqSi+JWe5XBvLEOizSWXYGdKRnXQqjWsm7Co4326h7grz/Mg==',
-        './src/hobbits/sam-LVWKD6NO.js':
-          'sha512-PtjdOvmN761rp0fqUNGn2hchVI6t+27o2O/5YhY6Ypvhhn8WC+RUqCpL8RRvg2zZz+v54HLplDukLXXZ9s1XUA==',
-        './src/hobbits/frodo-7EUGPPXN.js':
-          'sha512-UpMiJ/zRrbPDMpbjcdnGBYD8/qP2ZuAl9mHZXgA1A1DCYRCAN2WZb+T3CNrQKVOwbPH3rrEUxGZ156ev3vDmdg==',
+        './src/index-5CNBNISI.js':
+          'sha512-nv0Ec/zpZs4RaJ/mthHXx5svoqVWI9fPmcaWNORcJtgL5oA6f4T1TBRlH3O9Ub2mU97iWvjBlbp6YOUQWNDnMg==',
+        './src/hobbits/sam-7ELSRYCS.js':
+          'sha512-Wb9ncsSVlqx2ZYUSxczNlGFmZAByAopG8Lp/AibCc2D2ZQPwmxletnoj8Yc0kkxhoMYBWnMI39ccVcLgT2UpGA==',
+        './src/hobbits/frodo-FZ7H44GR.js':
+          'sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
       },
     })
   })
