@@ -423,9 +423,15 @@ export class UnenvResolvePlugin extends Object {
   )
 
   static unenvCallback = async (args) => {
+    let entry
+    if (args.path.startsWith('node:')) {
+      entry = args.path.slice(5)
+    } else {
+      entry = args.path
+    }
     return {
-      path: url.fileURLToPath(import.meta.resolve(`unenv/node/${args.path}`)),
-      external: true,
+      path: url.fileURLToPath(import.meta.resolve(`unenv/node/${entry}`)),
+      external: false,
     }
   }
 
