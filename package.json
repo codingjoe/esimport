@@ -29,6 +29,7 @@
     "esbuild": ">=0.10.0",
     "glob": ">=9.0.0",
     "minimatch": ">=6.0.0",
-    "serve-handler": ">=5.0.0"
+    "serve-handler": ">=5.0.0",
+    "unenv": ">=2.0.0-rc.15"
   }
 }

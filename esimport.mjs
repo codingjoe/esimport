@@ -8,6 +8,7 @@
 import * as esbuild from 'esbuild'
 import process from 'node:process'
 import path from 'node:path'
+import url from 'node:url'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { glob } from 'glob'
@@ -346,6 +347,88 @@ export async function compileEntryPoints(packageDir) {
   ]
 }
 
+export class UnenvResolvePlugin extends Object {
+  static nodeRuntimeModules = [
+    'assert',
+    'assert/strict',
+    'async_hooks',
+    'buffer',
+    'child_process',
+    'cluster',
+    'console',
+    'constants',
+    'crypto',
+    'dgram',
+    'diagnostics_channel',
+    'dns',
+    'dns/promises',
+    'domain',
+    'events',
+    'fs',
+    'fs/promises',
+    'http',
+    'http2',
+    'https',
+    'inspector',
+    'inspector/promises',
+    'module',
+    'net',
+    'os',
+    'path',
+    'path/posix',
+    'path/win32',
+    'perf_hooks',
+    'process',
+    'punycode',
+    'querystring',
+    'readline',
+    'readline/promises',
+    'repl',
+    'stream',
+    'stream/consumers',
+    'stream/promises',
+    'stream/web',
+    'string_decoder',
+    'sys',
+    'timers',
+    'timers/promises',
+    'tls',
+    'trace_events',
+    'tty',
+    'url',
+    'util',
+    'util/types',
+    'v8',
+    'vm',
+    'wasi',
+    'worker_threads',
+    'zlib',
+  ]
+
+  name = 'unenv'
+
+  setup = (build) => {
+    build.onResolve({
+      filter: new RegExp(
+        `^((node:)?${
+          UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
+            i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          ).join(
+            '|',
+          )
+        })$`,
+      ),
+    }, UnenvResolvePlugin.unenvCallback)
+  }
+
+  static unenvCallback = async (args) => {
+    return {
+      path: url.fileURLToPath(import.meta.resolve(`unenv/node/${args.path}`)),
+      external: true,
+    }
+  }
+}
+
 export async function run(packageDir, outputDir, options) {
   packageDir = path.isAbsolute(packageDir)
     ? packageDir
@@ -376,6 +459,7 @@ export async function run(packageDir, outputDir, options) {
     target: 'es2020',
     allowOverwrite: true,
     metafile: true,
+    plugins: [new UnenvResolvePlugin()],
   })
 
   const importMap = await build(packageDir, outputDir, context, entryPoints, options)
