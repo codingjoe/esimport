@@ -322,8 +322,8 @@ describe('invertObject', () => {
         baz: 'qux',
       }),
       {
-        bar: 'foo',
-        qux: 'baz',
+        bar: ['foo'],
+        qux: ['baz'],
       },
     )
   })

@@ -49,7 +49,14 @@ export function isParentDir(parent, child) {
  * @return {Object.<string,string>} - The inverse of the given object.
  */
 export function invertObject(obj) {
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [value, key]))
+  const defaultDict = new Proxy({}, {
+    get: (target, name) => name in target ? target[name] : [],
+  })
+
+  for (const [key, value] of Object.entries(obj)) {
+    defaultDict[value] = defaultDict[value].concat([key])
+  }
+  return defaultDict
 }
 
 /**
@@ -225,9 +232,12 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   let entryPointOutputMap = {}
   for (const [name, output] of Object.entries(result.metafile.outputs)) {
     if (output.entryPoint !== undefined) {
-      entryPointOutputMap[
-        reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
-      ] = `./${path.relative(outputDir, name)}`
+      console.log(reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)])
+      for (
+        const e of reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
+      ) {
+        entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
+      }
     }
   }
 
@@ -427,7 +437,6 @@ export class UnenvResolvePlugin extends Object {
       filter: UnenvResolvePlugin.nodeRuntimeModulesRegex,
     }, UnenvResolvePlugin.unenvCallback)
   }
-
 }
 
 export async function run(packageDir, outputDir, options) {
