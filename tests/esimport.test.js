@@ -4,7 +4,7 @@ import path from 'node:path'
 import { describe, mock, test } from 'node:test'
 
 import * as esimport from 'esimport'
-import { run } from 'esimport'
+import { run, UnenvResolvePlugin } from 'esimport'
 
 describe('integrityHash', () => {
   test('SHA-512', () => {
@@ -347,6 +347,35 @@ describe('compileEntryPoints', () => {
           'fellowship/hobbits/frodo.js',
         ],
       ],
+    )
+  })
+})
+
+describe('UnenvResolvePlugin', () => {
+  test('onResolve', async () => {
+    const plugin = new esimport.UnenvResolvePlugin()
+    const onResolve = mock.fn()
+    const build = { onResolve }
+    plugin.setup(build)
+    assert.deepStrictEqual(onResolve.mock.calls[0].arguments, [
+      {
+        filter:
+          /^((node:)?assert|assert\/strict|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|dns\/promises|domain|events|fs|fs\/promises|http|http2|https|inspector|inspector\/promises|module|net|os|path|path\/posix|path\/win32|perf_hooks|process|punycode|querystring|readline|readline\/promises|repl|stream|stream\/consumers|stream\/promises|stream\/web|string_decoder|sys|timers|timers\/promises|tls|trace_events|tty|url|util|util\/types|v8|vm|wasi|worker_threads|zlib)$/,
+      },
+      esimport.UnenvResolvePlugin.unenvCallback,
+    ])
+  })
+
+  test('unenvCallback', async () => {
+    assert.deepStrictEqual(
+      await esimport.UnenvResolvePlugin.unenvCallback({ path: 'url' }),
+      {
+        external: true,
+        path: path.join(
+          import.meta.dirname,
+          `../node_modules/unenv/dist/runtime/node/url.mjs`,
+        ),
+      },
     )
   })
 })
