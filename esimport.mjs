@@ -409,18 +409,17 @@ export class UnenvResolvePlugin extends Object {
 
   setup = (build) => {
     build.onResolve({
-      filter: new RegExp(
-        `^((node:)?${
-          UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
-            i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-          ).join(
-            '|',
-          )
-        })$`,
-      ),
+      filter: UnenvResolvePlugin.nodeRuntimeModulesRegex,
     }, UnenvResolvePlugin.unenvCallback)
   }
 
+  static nodeRuntimeModulesRegex = new RegExp(
+    `^((node:)?${
+      UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
+        i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      ).join('|')
+    })$`
+  )
   static unenvCallback = async (args) => {
     return {
       path: url.fileURLToPath(import.meta.resolve(`unenv/node/${args.path}`)),
