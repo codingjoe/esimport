@@ -415,7 +415,7 @@ export class UnenvResolvePlugin extends Object {
   ]
 
   static nodeRuntimeModulesRegex = new RegExp(
-    `^((node:)?${
+    `^(node:)?(${
       UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
         i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       ).join('|')
