@@ -232,7 +232,6 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   let entryPointOutputMap = {}
   for (const [name, output] of Object.entries(result.metafile.outputs)) {
     if (output.entryPoint !== undefined) {
-      console.log(reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)])
       for (
         const e of reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
       ) {
