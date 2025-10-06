@@ -242,19 +242,22 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
 
   const port = options.serve === true ? 3000 : options.serve
 
+  if (options.serve && !options.pathPrefix)
+    options.pathPrefix = `http://localhost:${port}`
+
   const integrity = {}
   for (const value of Object.values(entryPointOutputMap)) {
     const filePath = path.join(outputDir, value)
     const fileContent = await fs.readFile(filePath)
-    integrity[options.serve ? path.join(`http://localhost:${port}`, value) : value] =
+    integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] =
       integrityHash(fileContent)
   }
 
-  if (options.serve) {
+  if (options.pathPrefix) {
     entryPointOutputMap = Object.fromEntries(
       Object.entries(entryPointOutputMap).map((
         [key, value],
-      ) => [key, path.join(`http://localhost:${port}`, value)]),
+      ) => [key, path.join(options.pathPrefix, value)]),
     )
   }
 
@@ -548,6 +551,10 @@ export async function main(argv) {
       '-s , --serve [port]',
       'Serve ES modules via HTTP for local development.',
       parsePort,
+    )
+    .option(
+      '-p, --path-prefix <path>',
+      'Prefix all import paths with the given path. Useful when serving behind a reverse proxy.',
     )
     .argument(
       '<package-dir>',
