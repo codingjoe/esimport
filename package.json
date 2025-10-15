@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Blazing fast ESM compiler and importmap generator",
   "type": "module",
-  "bin": "./esimport.mjs",
+  "bin": {
+    "esimport": "esimport.mjs"
+  },
   "exports": "./esimport.mjs",
   "scripts": {
     "test": "node --test --experimental-test-coverage --test-coverage-exclude=tests/*"
