@@ -29,3 +29,6 @@ repos:
     hooks:
       - id: write-good
         args: [--no-passive]
+ci:
+  skip:
+    - write-good
