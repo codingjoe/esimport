@@ -25,4 +25,3 @@ insert_final_newline = false
 [*.{md,markdown}]
 indent_size = 2
 max_line_length = 80
-

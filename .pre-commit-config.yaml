@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-merge-conflict
@@ -15,20 +15,20 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/hukkin/mdformat
-    rev: 0.7.22
+    rev: 1.0.0
     hooks:
       - id: mdformat
         additional_dependencies:
-          - mdformat-admon
-          - mdformat-black
-          - mdformat-deflist
+          - mdformat-ruff
           - mdformat-footnote
           - mdformat-gfm
           - mdformat-gfm-alerts
-          - mdformat-tables
 
   - repo: https://github.com/btford/write-good
     rev: v1.0.8
     hooks:
       - id: write-good
         args: [--no-passive]
+ci:
+  skip:
+    - write-good
