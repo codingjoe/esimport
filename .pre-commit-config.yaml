@@ -19,13 +19,10 @@ repos:
     hooks:
       - id: mdformat
         additional_dependencies:
-          - mdformat-admon
-          - mdformat-black
-          - mdformat-deflist
+          - mdformat-ruff
           - mdformat-footnote
           - mdformat-gfm
           - mdformat-gfm-alerts
-          - mdformat-tables
 
   - repo: https://github.com/btford/write-good
     rev: v1.0.8
