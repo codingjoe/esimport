@@ -203,8 +203,12 @@ export async function bundleExports(cwd, projectRoot) {
   )
   return await expandEntryPoints(
     packageInfo.name,
-    packageInfo.exports ||
-      { '.': packageInfo.browser || packageInfo.module || packageInfo.main },
+    packageInfo.exports || {
+      '.':
+        (typeof packageInfo.browser === 'string' && packageInfo.browser) ||
+        packageInfo.module ||
+        packageInfo.main,
+    },
     cwd,
     projectRoot,
   )

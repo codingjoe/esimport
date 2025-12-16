@@ -1,0 +1,7 @@
+{
+  "name": "browser-object",
+  "main": "index.js",
+  "browser": {
+    "original-module": "browser-module"
+  }
+}

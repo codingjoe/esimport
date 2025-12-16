@@ -312,6 +312,18 @@ describe('bundleExports', () => {
       },
     )
   })
+
+  test('browser as object', async () => {
+    assert.deepStrictEqual(
+      await esimport.bundleExports(
+        path.join(process.cwd(), 'tests/fixtures/browser-object'),
+        path.join(process.cwd(), 'tests/fixtures'),
+      ),
+      {
+        'browser-object': 'browser-object/index.js',
+      },
+    )
+  })
 })
 
 describe('invertObject', () => {
