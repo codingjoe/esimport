@@ -115,12 +115,15 @@ describe('resolveImport', () => {
 
   test('list', () => {
     assert.strictEqual(
-      esimport.resolveImport([{
-        import: {
-          types: 'foo.d',
-          default: 'foo.mjs',
+      esimport.resolveImport([
+        {
+          import: {
+            types: 'foo.d',
+            default: 'foo.mjs',
+          },
         },
-      }, 'foo.cjs']),
+        'foo.cjs',
+      ]),
       'foo.mjs',
     )
   })
@@ -167,7 +170,7 @@ describe('resolveEntryPoints', () => {
         node: './ring.cjs',
       }),
       {
-        'fellowship': './ring.mjs',
+        fellowship: './ring.mjs',
       },
     )
   })
@@ -211,10 +214,7 @@ describe('expandSubpathPattern', () => {
         './src/hobbits/*.js',
         'tests/fixtures/fellowship',
       ),
-      [
-        './src/hobbits/sam.js',
-        './src/hobbits/frodo.js',
-      ],
+      ['./src/hobbits/sam.js', './src/hobbits/frodo.js'],
     )
   })
 
@@ -341,11 +341,7 @@ describe('compileEntryPoints', () => {
           'fellowship/hobbits/sam.js': 'src/hobbits/sam.js',
           'fellowship/hobbits/frodo.js': 'src/hobbits/frodo.js',
         },
-        [
-          'fellowship',
-          'fellowship/hobbits/sam.js',
-          'fellowship/hobbits/frodo.js',
-        ],
+        ['fellowship', 'fellowship/hobbits/sam.js', 'fellowship/hobbits/frodo.js'],
       ],
     )
   })

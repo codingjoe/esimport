@@ -40,7 +40,7 @@ export function integrityHash(data, algorithm = 'sha512') {
  */
 export function isParentDir(parent, child) {
   const relative = path.relative(parent, child)
-  return (relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+  return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
 /**
@@ -49,9 +49,12 @@ export function isParentDir(parent, child) {
  * @return {Object.<string,string>} - The inverse of the given object.
  */
 export function invertObject(obj) {
-  const defaultDict = new Proxy({}, {
-    get: (target, name) => name in target ? target[name] : [],
-  })
+  const defaultDict = new Proxy(
+    {},
+    {
+      get: (target, name) => (name in target ? target[name] : []),
+    },
+  )
 
   for (const [key, value] of Object.entries(obj)) {
     defaultDict[value] = defaultDict[value].concat([key])
@@ -92,10 +95,10 @@ export function resolveImport(entryPoint) {
  */
 export function path2EntryPoint(filePath, pathPattern, entryPointPattern) {
   const pathPatternRexEx = new RegExp(
-    path.normalize(pathPattern).replace(/[.+?^${}()|\[\]\\]/g, '\\$&').replace(
-      /\*/,
-      '\(\.\*\)',
-    ),
+    path
+      .normalize(pathPattern)
+      .replace(/[.+?^${}()|\[\]\\]/g, '\\$&')
+      .replace(/\*/, '\(\.\*\)'),
   )
   if (!pathPatternRexEx.test(filePath)) {
     throw new Error(`Invalid path ${filePath} for entry point ${pathPatternRexEx}`)
@@ -114,13 +117,15 @@ export function path2EntryPoint(filePath, pathPattern, entryPointPattern) {
  * @param cwd {string} - The current working directory.
  */
 export async function expandSubpathPattern(pattern, cwd) {
-  return (await glob(pattern.replace(/\*/, '{*,**/*}'), {
-    cwd,
-    nodir: true,
-    dotRelative: true,
-    ignore: 'node_modules/**',
-    posix: true,
-  })).filter((filePath) => /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath))
+  return (
+    await glob(pattern.replace(/\*/, '{*,**/*}'), {
+      cwd,
+      nodir: true,
+      dotRelative: true,
+      ignore: 'node_modules/**',
+      posix: true,
+    })
+  ).filter((filePath) => /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath))
 }
 
 /**
@@ -138,15 +143,17 @@ export function resolveEntryPoints(pkgName, entryPoints) {
     return { [pkgName]: resolveImport(entryPoints) }
   } else if (Array.isArray(entryPoints)) {
     return Object.fromEntries(
-      entryPoints.map((
-        entryPoint,
-      ) => [path.join(pkgName, entryPoint), resolveImport(entryPoint)]),
+      entryPoints.map((entryPoint) => [
+        path.join(pkgName, entryPoint),
+        resolveImport(entryPoint),
+      ]),
     )
   } else if (typeof entryPoints === 'object') {
     try {
       return { [pkgName]: resolveImport(entryPoints) }
     } catch (e) {
-      return Object.entries(entryPoints).filter(([key, value]) => value !== undefined)
+      return Object.entries(entryPoints)
+        .filter(([key, value]) => value !== undefined)
         .reduce((acc, [key, value]) => {
           acc[path.join(pkgName, key)] = resolveImport(value)
           return acc
@@ -168,11 +175,9 @@ export function resolveEntryPoints(pkgName, entryPoints) {
 export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) {
   const entryPointMap = {}
   const excludePatterns = []
-  for (
-    const [entryPointPattern, pathPattern] of Object.entries(
-      resolveEntryPoints(pkgName, entryPoints),
-    )
-  ) {
+  for (const [entryPointPattern, pathPattern] of Object.entries(
+    resolveEntryPoints(pkgName, entryPoints),
+  )) {
     if (pathPattern === null) {
       excludePatterns.push(entryPointPattern)
     } else {
@@ -185,7 +190,7 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
   for (const key of Object.keys(entryPointMap)) {
     if (
       excludePatterns.some((pattern) =>
-        minimatch(key, pattern.replace(/\*/, '{*,**/*}'), { nocomment: true })
+        minimatch(key, pattern.replace(/\*/, '{*,**/*}'), { nocomment: true }),
       )
     ) {
       delete entryPointMap[key]
@@ -203,8 +208,9 @@ export async function bundleExports(cwd, projectRoot) {
   )
   return await expandEntryPoints(
     packageInfo.name,
-    packageInfo.exports ||
-      { '.': packageInfo.browser || packageInfo.module || packageInfo.main },
+    packageInfo.exports || {
+      '.': packageInfo.browser || packageInfo.module || packageInfo.main,
+    },
     cwd,
     projectRoot,
   )
@@ -232,9 +238,9 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   let entryPointOutputMap = {}
   for (const [name, output] of Object.entries(result.metafile.outputs)) {
     if (output.entryPoint !== undefined) {
-      for (
-        const e of reverseEntryPointMap[path.relative(projectRoot, output.entryPoint)]
-      ) {
+      for (const e of reverseEntryPointMap[
+        path.relative(projectRoot, output.entryPoint)
+      ]) {
         entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
       }
     }
@@ -255,9 +261,10 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
 
   if (options.pathPrefix) {
     entryPointOutputMap = Object.fromEntries(
-      Object.entries(entryPointOutputMap).map((
-        [key, value],
-      ) => [key, path.join(options.pathPrefix, value)]),
+      Object.entries(entryPointOutputMap).map(([key, value]) => [
+        key,
+        path.join(options.pathPrefix, value),
+      ]),
     )
   }
 
@@ -266,10 +273,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
     integrity,
   }
 
-  await fs.writeFile(
-    path.join(outputDir, 'importmap.json'),
-    JSON.stringify(importMap),
-  )
+  await fs.writeFile(path.join(outputDir, 'importmap.json'), JSON.stringify(importMap))
 
   return importMap
 }
@@ -332,21 +336,16 @@ export async function compileEntryPoints(packageDir) {
   let entryPoints = {}
   entryPoints = {
     ...entryPoints,
-    ...await expandEntryPoints('', pkgInfo.imports || {}, packageDir, packageDir),
+    ...(await expandEntryPoints('', pkgInfo.imports || {}, packageDir, packageDir)),
   }
-  entryPoints = { ...entryPoints, ...await bundleExports(packageDir, packageDir) }
-  for (
-    const dep of Object.keys({
-      ...pkgInfo.dependencies,
-      ...pkgInfo.peerDependencies,
-    })
-  ) {
+  entryPoints = { ...entryPoints, ...(await bundleExports(packageDir, packageDir)) }
+  for (const dep of Object.keys({
+    ...pkgInfo.dependencies,
+    ...pkgInfo.peerDependencies,
+  })) {
     entryPoints = {
       ...entryPoints,
-      ...await bundleExports(
-        path.join(packageDir, 'node_modules', dep),
-        packageDir,
-      ),
+      ...(await bundleExports(path.join(packageDir, 'node_modules', dep), packageDir)),
     }
   }
   return [
@@ -418,11 +417,9 @@ export class UnenvResolvePlugin extends Object {
   ]
 
   static nodeRuntimeModulesRegex = new RegExp(
-    `^(node:)?(${
-      UnenvResolvePlugin.nodeRuntimeModules.map((i) =>
-        i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      ).join('|')
-    })$`,
+    `^(node:)?(${UnenvResolvePlugin.nodeRuntimeModules
+      .map((i) => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|')})$`,
   )
 
   static unenvCallback = async (args) => {
@@ -441,9 +438,12 @@ export class UnenvResolvePlugin extends Object {
   name = 'unenv'
 
   setup = (build) => {
-    build.onResolve({
-      filter: UnenvResolvePlugin.nodeRuntimeModulesRegex,
-    }, UnenvResolvePlugin.unenvCallback)
+    build.onResolve(
+      {
+        filter: UnenvResolvePlugin.nodeRuntimeModulesRegex,
+      },
+      UnenvResolvePlugin.unenvCallback,
+    )
   }
 }
 
@@ -459,7 +459,7 @@ export async function run(packageDir, outputDir, options) {
 
   const context = await esbuild.context({
     entryPoints: Object.values(entryPoints).map((entryPoint) =>
-      path.join(packageDir, entryPoint)
+      path.join(packageDir, entryPoint),
     ),
     bundle: true,
     format: 'esm',
@@ -486,19 +486,26 @@ export async function run(packageDir, outputDir, options) {
     const server = http.createServer((request, response) => {
       handler(request, response, {
         public: outputDir,
-        headers: [{
-          source: '**/*.@(js|css|map)',
-          headers: [{
-            key: 'Cache-Control',
-            value: 'max-age=315360000, public, immutable',
-          }],
-        }, {
-          source: '{**/*,*}',
-          headers: [{
-            key: 'Connection',
-            value: 'close',
-          }],
-        }],
+        headers: [
+          {
+            source: '**/*.@(js|css|map)',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'max-age=315360000, public, immutable',
+              },
+            ],
+          },
+          {
+            source: '{**/*,*}',
+            headers: [
+              {
+                key: 'Connection',
+                value: 'close',
+              },
+            ],
+          },
+        ],
         etag: true,
       })
     })
@@ -541,9 +548,7 @@ export function parsePort(value, dummyPrevious) {
 export async function main(argv) {
   const program = new commander.Command('esimport')
   await program
-    .description(
-      'Compile a project into ES modules and generate a browser importmap.',
-    )
+    .description('Compile a project into ES modules and generate a browser importmap.')
     .version(esimportPkgInfo.version)
     .option('-w, --watch', 'Watch for changes and rebuild.')
     .option('-v, --verbose', 'Verbose output.')
