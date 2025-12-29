@@ -187,7 +187,8 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
       }
     }
   }
-  for (const key of Object.keys(entryPointMap)) {
+
+  for (const key in entryPointMap) {
     if (
       excludePatterns.some((pattern) =>
         minimatch(key, pattern.replace(/\*/, '{*,**/*}'), { nocomment: true }),
@@ -196,6 +197,7 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
       delete entryPointMap[key]
     }
   }
+
   return entryPointMap
 }
 
@@ -339,15 +341,17 @@ export async function compileEntryPoints(packageDir) {
     ...(await expandEntryPoints('', pkgInfo.imports || {}, packageDir, packageDir)),
   }
   entryPoints = { ...entryPoints, ...(await bundleExports(packageDir, packageDir)) }
-  for (const dep of Object.keys({
+
+  for (const dep in {
     ...pkgInfo.dependencies,
     ...pkgInfo.peerDependencies,
-  })) {
+  }) {
     entryPoints = {
       ...entryPoints,
       ...(await bundleExports(path.join(packageDir, 'node_modules', dep), packageDir)),
     }
   }
+
   return [
     entryPoints,
     Object.keys({
