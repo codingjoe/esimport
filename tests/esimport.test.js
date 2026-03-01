@@ -19,9 +19,12 @@ describe('integrityHashes', () => {
   })
 
   test('custom algorithms', () => {
-    assert.deepStrictEqual([...esimport.integrityHashes('foo', ['sha512'])], [
-      'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
-    ])
+    assert.deepStrictEqual(
+      [...esimport.integrityHashes('foo', ['sha512'])],
+      [
+        'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
+      ],
+    )
   })
 
   test('invalid algorithm', () => {

@@ -259,8 +259,9 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   for (const value of Object.values(entryPointOutputMap)) {
     const filePath = path.join(outputDir, value)
     const fileContent = await fs.readFile(filePath)
-    integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] =
-      [...integrityHashes(fileContent)].join(' ')
+    integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] = [
+      ...integrityHashes(fileContent),
+    ].join(' ')
   }
 
   if (options.pathPrefix) {
