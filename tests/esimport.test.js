@@ -6,31 +6,27 @@ import { describe, mock, test } from 'node:test'
 import * as esimport from 'esimport'
 import { run, UnenvResolvePlugin } from 'esimport'
 
-describe('integrityHash', () => {
-  test('SHA-512', () => {
-    const hash = esimport.integrityHash('foo')
-    assert.strictEqual(
-      hash,
+describe('integrityHashes', () => {
+  test('default algorithms', () => {
+    assert.deepStrictEqual(
+      [...esimport.integrityHashes('foo')],
+      [
+        'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=',
+        'sha384-mMEf/f3VQGdrGhN8saIrKnA1DJpEFx1rEYDGvly7LuP3nVMsih3Z7y6OCOdSo7q7',
+        'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
+      ],
+    )
+  })
+
+  test('custom algorithms', () => {
+    assert.deepStrictEqual([...esimport.integrityHashes('foo', ['sha512'])], [
       'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
-    )
+    ])
   })
 
-  test('SHA-384', () => {
-    const hash = esimport.integrityHash('foo', 'sha384')
-    assert.strictEqual(
-      hash,
-      'sha384-mMEf/f3VQGdrGhN8saIrKnA1DJpEFx1rEYDGvly7LuP3nVMsih3Z7y6OCOdSo7q7',
-    )
-  })
-
-  test('SHA-256', () => {
-    const hash = esimport.integrityHash('foo', 'sha256')
-    assert.strictEqual(hash, 'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=')
-  })
-
-  test('invalid algorithm', async () => {
-    await assert.throws(
-      () => esimport.integrityHash('foo', 'invalid'),
+  test('invalid algorithm', () => {
+    assert.throws(
+      () => [...esimport.integrityHashes('foo', ['invalid'])],
       /Digest method not supported/,
     )
   })
