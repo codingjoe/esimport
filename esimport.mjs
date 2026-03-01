@@ -258,7 +258,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
     const filePath = path.join(outputDir, value)
     const fileContent = await fs.readFile(filePath)
     integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] =
-      integrityHash(fileContent)
+      ['sha256', 'sha384', 'sha512'].map((algorithm) => integrityHash(fileContent, algorithm)).join(' ')
   }
 
   if (options.pathPrefix) {

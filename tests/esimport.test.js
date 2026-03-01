@@ -402,11 +402,11 @@ describe('run', () => {
       },
       integrity: {
         './src/index-5CNBNISI.js':
-          'sha512-nv0Ec/zpZs4RaJ/mthHXx5svoqVWI9fPmcaWNORcJtgL5oA6f4T1TBRlH3O9Ub2mU97iWvjBlbp6YOUQWNDnMg==',
+          'sha256-aWHHZl6Ab+ebgKSfedgLn7DRB6zEBj/L6okCLUgHJYs= sha384-MNjMdiXxqZHO93KFYvmoUlFT86FTYhURRkIMHXTaX1lLcXmWEg++jpL4+K7xTGUU sha512-nv0Ec/zpZs4RaJ/mthHXx5svoqVWI9fPmcaWNORcJtgL5oA6f4T1TBRlH3O9Ub2mU97iWvjBlbp6YOUQWNDnMg==',
         './src/hobbits/sam-7ELSRYCS.js':
-          'sha512-Wb9ncsSVlqx2ZYUSxczNlGFmZAByAopG8Lp/AibCc2D2ZQPwmxletnoj8Yc0kkxhoMYBWnMI39ccVcLgT2UpGA==',
+          'sha256-txTKu1EhJ4Mq0iors/uL8tMO7V+AqG90QcdFaqgG2vU= sha384-tMxfgNVE/YvmzLVLJ002KZ5DT1w2XX/C3NVPrujb8DTuKd5Ta9MZoy6+BKrCwy/Q sha512-Wb9ncsSVlqx2ZYUSxczNlGFmZAByAopG8Lp/AibCc2D2ZQPwmxletnoj8Yc0kkxhoMYBWnMI39ccVcLgT2UpGA==',
         './src/hobbits/frodo-FZ7H44GR.js':
-          'sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
+          'sha256-75BZz/UpPligxcmAdJnH+TJd/CIyRSjLA54xBpnRakQ= sha384-7mjoGvP3jSYReNFlnO6afThCYcCfvesfEDNcFTyAy3SAv5nJRCkYQ3ptT7kn43AK sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
       },
     })
   })
