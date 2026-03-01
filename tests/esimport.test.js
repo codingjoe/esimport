@@ -6,31 +6,30 @@ import { describe, mock, test } from 'node:test'
 import * as esimport from 'esimport'
 import { run, UnenvResolvePlugin } from 'esimport'
 
-describe('integrityHash', () => {
-  test('SHA-512', () => {
-    const hash = esimport.integrityHash('foo')
-    assert.strictEqual(
-      hash,
-      'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
+describe('integrityHashes', () => {
+  test('default algorithms', () => {
+    assert.deepStrictEqual(
+      [...esimport.integrityHashes('foo')],
+      [
+        'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=',
+        'sha384-mMEf/f3VQGdrGhN8saIrKnA1DJpEFx1rEYDGvly7LuP3nVMsih3Z7y6OCOdSo7q7',
+        'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
+      ],
     )
   })
 
-  test('SHA-384', () => {
-    const hash = esimport.integrityHash('foo', 'sha384')
-    assert.strictEqual(
-      hash,
-      'sha384-mMEf/f3VQGdrGhN8saIrKnA1DJpEFx1rEYDGvly7LuP3nVMsih3Z7y6OCOdSo7q7',
+  test('custom algorithms', () => {
+    assert.deepStrictEqual(
+      [...esimport.integrityHashes('foo', ['sha512'])],
+      [
+        'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
+      ],
     )
   })
 
-  test('SHA-256', () => {
-    const hash = esimport.integrityHash('foo', 'sha256')
-    assert.strictEqual(hash, 'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=')
-  })
-
-  test('invalid algorithm', async () => {
-    await assert.throws(
-      () => esimport.integrityHash('foo', 'invalid'),
+  test('invalid algorithm', () => {
+    assert.throws(
+      () => [...esimport.integrityHashes('foo', ['invalid'])],
       /Digest method not supported/,
     )
   })
@@ -402,11 +401,11 @@ describe('run', () => {
       },
       integrity: {
         './src/index-5CNBNISI.js':
-          'sha512-nv0Ec/zpZs4RaJ/mthHXx5svoqVWI9fPmcaWNORcJtgL5oA6f4T1TBRlH3O9Ub2mU97iWvjBlbp6YOUQWNDnMg==',
+          'sha256-aWHHZl6Ab+ebgKSfedgLn7DRB6zEBj/L6okCLUgHJYs= sha384-MNjMdiXxqZHO93KFYvmoUlFT86FTYhURRkIMHXTaX1lLcXmWEg++jpL4+K7xTGUU sha512-nv0Ec/zpZs4RaJ/mthHXx5svoqVWI9fPmcaWNORcJtgL5oA6f4T1TBRlH3O9Ub2mU97iWvjBlbp6YOUQWNDnMg==',
         './src/hobbits/sam-7ELSRYCS.js':
-          'sha512-Wb9ncsSVlqx2ZYUSxczNlGFmZAByAopG8Lp/AibCc2D2ZQPwmxletnoj8Yc0kkxhoMYBWnMI39ccVcLgT2UpGA==',
+          'sha256-txTKu1EhJ4Mq0iors/uL8tMO7V+AqG90QcdFaqgG2vU= sha384-tMxfgNVE/YvmzLVLJ002KZ5DT1w2XX/C3NVPrujb8DTuKd5Ta9MZoy6+BKrCwy/Q sha512-Wb9ncsSVlqx2ZYUSxczNlGFmZAByAopG8Lp/AibCc2D2ZQPwmxletnoj8Yc0kkxhoMYBWnMI39ccVcLgT2UpGA==',
         './src/hobbits/frodo-FZ7H44GR.js':
-          'sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
+          'sha256-75BZz/UpPligxcmAdJnH+TJd/CIyRSjLA54xBpnRakQ= sha384-7mjoGvP3jSYReNFlnO6afThCYcCfvesfEDNcFTyAy3SAv5nJRCkYQ3ptT7kn43AK sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
       },
     })
   })

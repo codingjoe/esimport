@@ -58,7 +58,7 @@ out
 ```
 
 ```bash
-# a fully resolved importmap with sha512 hashes
+# a fully resolved importmap with sha256, sha384, and sha512 hashes
 $ jq '.' out/importmap.json
 {
   "imports": {
@@ -69,10 +69,10 @@ $ jq '.' out/importmap.json
     // …
   },
   "integrity": {
-    "src/js/components/myWidget-KWLRK5KY.js": "sha512-AcfJS2+aGBtNqX5ZPJFJPySC+bmDKC7I64mExuSJM+qnWmSrahd/a94XnsdpyeQWry9DaivErfhxu8avQ3Tiow==",
-    "node_modules/lit/index-W3JFEEGS.js": "sha512-CxSTqZXCqTYvL7K0JJtFT5NJdVYp8fJnjXR6pVt/IcC3VAcr+J5EtQsgLR9Q30C0SJD/QmeX+cd6C4T8cbdihg==",
-    "node_modules/lit/async-directive-C4RAQ6VS.js": "sha512-bftcjSsligJFPy44umcVoBR8A5Gnaosp6uLUett18w9zNaqfC6BgSFzIErq0Npb1tNUPwwCQckIMjKFyYKAGBg==",
-    "node_modules/lit/decorators-RLPUYE5L.js": "sha512-zDE+J+OhoRU8Lle7jSxZVojj8JoWZuqWf2QzvFfF2CWgk4lGycTj8c7rZ3p24OLVDAhe/vUTWsb3gbt5m8JLgw==",
+    "src/js/components/myWidget-KWLRK5KY.js": "sha256-… sha384-… sha512-AcfJS2+aGBtNqX5ZPJFJPySC+bmDKC7I64mExuSJM+qnWmSrahd/a94XnsdpyeQWry9DaivErfhxu8avQ3Tiow==",
+    "node_modules/lit/index-W3JFEEGS.js": "sha256-… sha384-… sha512-CxSTqZXCqTYvL7K0JJtFT5NJdVYp8fJnjXR6pVt/IcC3VAcr+J5EtQsgLR9Q30C0SJD/QmeX+cd6C4T8cbdihg==",
+    "node_modules/lit/async-directive-C4RAQ6VS.js": "sha256-… sha384-… sha512-bftcjSsligJFPy44umcVoBR8A5Gnaosp6uLUett18w9zNaqfC6BgSFzIErq0Npb1tNUPwwCQckIMjKFyYKAGBg==",
+    "node_modules/lit/decorators-RLPUYE5L.js": "sha256-… sha384-… sha512-zDE+J+OhoRU8Lle7jSxZVojj8JoWZuqWf2QzvFfF2CWgk4lGycTj8c7rZ3p24OLVDAhe/vUTWsb3gbt5m8JLgw==",
     // …
   }
 }

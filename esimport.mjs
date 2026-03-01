@@ -20,15 +20,17 @@ import handler from 'serve-handler'
 import * as http from 'node:http'
 
 /**
- * Generate a hash of the given data using the specified algorithm.
+ * Yield integrity hashes for the given data using each of the specified algorithms.
  *
  * @param data {string|Buffer} - The data to hash.
- * @param algorithm {string} - The hashing algorithm to use (default: 'sha512').
- * @return {string} - A base64-encoded hash string with algorithm prefix.
+ * @param algorithms {string[]} - The hashing algorithms to use.
+ * @yields {string} - A base64-encoded hash string with algorithm prefix.
  */
-export function integrityHash(data, algorithm = 'sha512') {
-  const hash = crypto.createHash(algorithm).update(data).digest('base64')
-  return `${algorithm.toLowerCase().replace(/-/, '')}-${hash}`
+export function* integrityHashes(data, algorithms = ['sha256', 'sha384', 'sha512']) {
+  for (const algorithm of algorithms) {
+    const hash = crypto.createHash(algorithm).update(data).digest('base64')
+    yield `${algorithm.toLowerCase().replace(/-/, '')}-${hash}`
+  }
 }
 
 /**
@@ -257,8 +259,9 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   for (const value of Object.values(entryPointOutputMap)) {
     const filePath = path.join(outputDir, value)
     const fileContent = await fs.readFile(filePath)
-    integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] =
-      integrityHash(fileContent)
+    integrity[options.pathPrefix ? path.join(options.pathPrefix, value) : value] = [
+      ...integrityHashes(fileContent),
+    ].join(' ')
   }
 
   if (options.pathPrefix) {
