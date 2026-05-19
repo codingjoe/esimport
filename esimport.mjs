@@ -48,7 +48,7 @@ export function isParentDir(parent, child) {
 /**
  * Invert an object's keys and values.
  * @param obj {Object.<string,string>} - The object to invert.
- * @return {Object.<string,string>} - The inverse of the given object.
+ * @return {Object.<string,string[]>} - The inverse of the given object.
  */
 export function invertObject(obj) {
   const defaultDict = new Proxy(
