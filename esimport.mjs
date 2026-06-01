@@ -541,7 +541,7 @@ export function parsePort(value, dummyPrevious) {
   const parsedValue = parseInt(value, 10)
   if (isNaN(parsedValue)) {
     throw new commander.InvalidArgumentError('Not a number.')
-  } else if (!(49151 >= parsedValue && parsedValue > 1024)) {
+  } else if (!(49_151 >= parsedValue && parsedValue > 1024)) {
     throw new commander.InvalidArgumentError('Port must be between 1024 and 49151.')
   }
   return parsedValue
