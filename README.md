@@ -12,6 +12,10 @@
   <img alt="Baseline: Newly available" src="https://web-platform-dx.github.io/assets/img/baseline-newly-word.svg" height="32" align="right">
 </picture>
 
+## Sponsors
+
+[![Sponsors](https://django.the-box.sh/sponsors/codingjoe/esimport.svg)](https://github.com/sponsors/codingjoe)
+
 ## Why
 
 ESM is the future. _No bundling, no bullsh\*t._
