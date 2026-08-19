@@ -35,7 +35,6 @@ repos:
     rev: v0.6.1
     hooks:
       - id: biome-check
-        additional_dependencies: ["@biomejs/biome"]
   - repo: https://github.com/btford/write-good
     rev: v1.0.8
     hooks:
