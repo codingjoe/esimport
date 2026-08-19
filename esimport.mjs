@@ -244,25 +244,11 @@ export function treeShake(metafile, entryPointSourceMap, projectRoot) {
     }
   }
 
-  const queue = []
-
-  function mark(name) {
+  function* reachable(name) {
     if (name === undefined || reachableOutputs.has(name)) return
     reachableOutputs.add(name)
-    if (metafile.outputs[`${name}.map`] !== undefined) {
-      reachableOutputs.add(`${name}.map`)
-    }
-    queue.push(name)
-  }
-
-  for (const [source, name] of Object.entries(entryPointToOutput)) {
-    if (source.split(path.sep)[0] !== 'node_modules') {
-      mark(name)
-    }
-  }
-
-  while (queue.length > 0) {
-    const output = metafile.outputs[queue.shift()]
+    yield name
+    const output = metafile.outputs[name]
 
     if (output.entryPoint !== undefined) {
       for (const key of reverseEntryPointMap[
@@ -275,13 +261,23 @@ export function treeShake(metafile, entryPointSourceMap, projectRoot) {
     for (const { path: entryPoint } of output.imports) {
       const source = entryPointSourceMap[entryPoint]
       if (source !== undefined && entryPointToOutput[source] !== undefined) {
-        mark(entryPointToOutput[source])
+        yield* reachable(entryPointToOutput[source])
       } else if (metafile.outputs[entryPoint] !== undefined) {
-        mark(entryPoint)
+        yield* reachable(entryPoint)
       }
     }
 
-    mark(output.cssBundle)
+    yield* reachable(output.cssBundle)
+  }
+
+  for (const [source, name] of Object.entries(entryPointToOutput)) {
+    if (source.split(path.sep)[0] !== 'node_modules') {
+      for (const output of reachable(name)) {
+        if (metafile.outputs[`${output}.map`] !== undefined) {
+          reachableOutputs.add(`${output}.map`)
+        }
+      }
+    }
   }
 
   return { reachableKeys, reachableOutputs }
