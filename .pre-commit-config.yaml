@@ -31,16 +31,10 @@ repos:
     rev: 2025.22.2
     hooks:
       - id: esupgrade
-  - repo: local
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.5.9
     hooks:
-      - id: prettier
-        name: prettier
-        entry: prettier --check --write --ignore-unknown
-        args:
-          - --config=package.json
-        language: node
-        additional_dependencies: ["prettier"]
-        types_or: [javascript]
+      - id: biome-check
   - repo: https://github.com/btford/write-good
     rev: v1.0.8
     hooks:
