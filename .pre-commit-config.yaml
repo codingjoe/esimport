@@ -31,14 +31,11 @@ repos:
     rev: 2025.22.2
     hooks:
       - id: esupgrade
-  - repo: local
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v0.6.1
     hooks:
-      - id: biome
-        name: biome
-        entry: biome check --write --no-errors-on-unmatched
-        language: node
+      - id: biome-check
         additional_dependencies: ["@biomejs/biome"]
-        types_or: [javascript]
   - repo: https://github.com/btford/write-good
     rev: v1.0.8
     hooks:
