@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict'
-import process from 'node:process'
 import path from 'node:path'
+import process from 'node:process'
 import { describe, mock, test } from 'node:test'
 
 import * as esimport from 'esimport'
-import { run, UnenvResolvePlugin } from 'esimport'
 
 describe('integrityHashes', () => {
   test('default algorithms', () => {
