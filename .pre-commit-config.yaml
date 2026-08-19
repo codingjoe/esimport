@@ -33,13 +33,11 @@ repos:
       - id: esupgrade
   - repo: local
     hooks:
-      - id: prettier
-        name: prettier
-        entry: prettier --check --write --ignore-unknown
-        args:
-          - --config=package.json
+      - id: biome
+        name: biome
+        entry: biome check --write --no-errors-on-unmatched
         language: node
-        additional_dependencies: ["prettier"]
+        additional_dependencies: ["@biomejs/biome"]
         types_or: [javascript]
   - repo: https://github.com/btford/write-good
     rev: v1.0.8

@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
+import * as http from 'node:http'
+import path from 'node:path'
+import process from 'node:process'
+import url, { fileURLToPath } from 'node:url'
+import * as commander from 'commander'
 /**
  * Compile a project into static JavaScript modules and generate a browser importmap.
  *
@@ -6,18 +13,10 @@
  *     esimport <package-root> <output-dir>
  */
 import * as esbuild from 'esbuild'
-import process from 'node:process'
-import path from 'node:path'
-import url from 'node:url'
-import fs from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import { glob } from 'glob'
 import { minimatch } from 'minimatch'
-import * as commander from 'commander'
-import esimportPkgInfo from './package.json' with { type: 'json' }
-import crypto from 'node:crypto'
 import handler from 'serve-handler'
-import * as http from 'node:http'
+import esimportPkgInfo from './package.json' with { type: 'json' }
 
 /**
  * Yield integrity hashes for the given data using each of the specified algorithms.
@@ -78,7 +77,7 @@ export function resolveImport(entryPoint) {
     return resolveImport(entryPoint.filter((e) => typeof e === 'object')[0])
   }
   for (const key of ['browser', 'import', 'default']) {
-    if (entryPoint.hasOwnProperty(key) && entryPoint[key] !== undefined) {
+    if (Object.hasOwn(entryPoint, key) && entryPoint[key] !== undefined) {
       return resolveImport(entryPoint[key])
     }
   }
@@ -99,14 +98,14 @@ export function path2EntryPoint(filePath, pathPattern, entryPointPattern) {
   const pathPatternRexEx = new RegExp(
     path
       .normalize(pathPattern)
-      .replace(/[.+?^${}()|\[\]\\]/g, '\\$&')
-      .replace(/\*/, '\(\.\*\)'),
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/, '(.*)'),
   )
   if (!pathPatternRexEx.test(filePath)) {
     throw new Error(`Invalid path ${filePath} for entry point ${pathPatternRexEx}`)
   }
   return path.normalize(
-    filePath.replace(pathPatternRexEx, entryPointPattern.replace(/\*/, '\$1')),
+    filePath.replace(pathPatternRexEx, entryPointPattern.replace(/\*/, '$1')),
   )
 }
 
@@ -153,9 +152,9 @@ export function resolveEntryPoints(pkgName, entryPoints) {
   } else if (typeof entryPoints === 'object') {
     try {
       return { [pkgName]: resolveImport(entryPoints) }
-    } catch (e) {
+    } catch {
       return Object.entries(entryPoints)
-        .filter(([key, value]) => value !== undefined)
+        .filter(([, value]) => value !== undefined)
         .reduce((acc, [key, value]) => {
           acc[path.join(pkgName, key)] = resolveImport(value)
           return acc
@@ -534,12 +533,11 @@ export async function run(packageDir, outputDir, options) {
  * Parse string to integer and check if it's a valid port.
  *
  * @param value {string} -
- * @param dummyPrevious
  * @return {number}
  */
-export function parsePort(value, dummyPrevious) {
+export function parsePort(value) {
   const parsedValue = parseInt(value, 10)
-  if (isNaN(parsedValue)) {
+  if (Number.isNaN(parsedValue)) {
     throw new commander.InvalidArgumentError('Not a number.')
   } else if (!(49_151 >= parsedValue && parsedValue > 1024)) {
     throw new commander.InvalidArgumentError('Port must be between 1024 and 49151.')
