@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import assert from 'node:assert/strict'
 import process from 'node:process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
