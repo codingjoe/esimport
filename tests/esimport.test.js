@@ -564,31 +564,32 @@ describe('run (treeshake)', () => {
         Object.values(result.imports).sort(),
       )
       const files = await listFiles(outputDir)
+      const outputFiles = files.join('\n')
       assert(files.includes('importmap.json'))
-      assert(
-        files.some((f) => /^src\/index-.*\.js$/.test(f)),
-        'expected kept src/index-*.js',
-      )
-      assert(
-        files.some((f) => /^src\/index-.*\.js\.map$/.test(f)),
+      assert.match(outputFiles, /^src\/index-.*\.js$/m, 'expected kept src/index-*.js')
+      assert.match(
+        outputFiles,
+        /^src\/index-.*\.js\.map$/m,
         'expected kept src/index-*.js.map',
       )
-      assert(
-        files.some((f) => /^node_modules\/date-utils\/locale\/index-.*\.js$/.test(f)),
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/locale\/index-.*\.js$/m,
         'expected kept date-utils/locale output',
       )
-      assert(
-        files.some((f) =>
-          /^node_modules\/date-utils\/locale\/index-.*\.js\.map$/.test(f),
-        ),
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/locale\/index-.*\.js\.map$/m,
         'expected kept date-utils/locale .map',
       )
-      assert(
-        !files.some((f) => /^node_modules\/date-utils\/index-.*/.test(f)),
+      assert.doesNotMatch(
+        outputFiles,
+        /^node_modules\/date-utils\/index-.*/m,
         'unused date-utils output must be removed',
       )
-      assert(
-        !files.some((f) => /^node_modules\/date-utils\/fp\/index-.*/.test(f)),
+      assert.doesNotMatch(
+        outputFiles,
+        /^node_modules\/date-utils\/fp\/index-.*/m,
         'unused date-utils/fp output must be removed',
       )
     } finally {
@@ -610,13 +611,15 @@ describe('run (treeshake)', () => {
         'date-utils/locale',
         'treeshake-app',
       ])
-      const files = await listFiles(outputDir)
-      assert(
-        files.some((f) => /^node_modules\/date-utils\/index-.*\.js$/.test(f)),
+      const outputFiles = (await listFiles(outputDir)).join('\n')
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/index-.*\.js$/m,
         'date-utils output should exist without treeshake',
       )
-      assert(
-        files.some((f) => /^node_modules\/date-utils\/fp\/index-.*\.js$/.test(f)),
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/fp\/index-.*\.js$/m,
         'date-utils/fp output should exist without treeshake',
       )
     } finally {
