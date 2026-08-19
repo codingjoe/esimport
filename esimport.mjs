@@ -226,11 +226,8 @@ export async function bundleExports(cwd, projectRoot) {
 class TreeShaker {
   #metafile
   #entryPointSourceMap
-  #projectRoot
-  #reachableKeys = new Set()
   #reachableOutputs = new Set()
-  #reverseEntryPointMap
-  #entryPointToOutput = {}
+  #entryPointToOutput
 
   /**
    * Walker over the metafile's reachability graph from the project's own entry points.
@@ -242,66 +239,48 @@ class TreeShaker {
   constructor(metafile, entryPointSourceMap, projectRoot) {
     this.#metafile = metafile
     this.#entryPointSourceMap = entryPointSourceMap
-    this.#projectRoot = projectRoot
-    this.#reverseEntryPointMap = invertObject(entryPointSourceMap)
-    for (const [name, output] of Object.entries(metafile.outputs)) {
-      if (output.entryPoint !== undefined) {
-        this.#entryPointToOutput[path.relative(projectRoot, output.entryPoint)] = name
-      }
-    }
+    this.#entryPointToOutput = Object.fromEntries(
+      Object.entries(metafile.outputs)
+        .filter(([, output]) => output.entryPoint !== undefined)
+        .map(([name, output]) => [path.relative(projectRoot, output.entryPoint), name]),
+    )
   }
 
   /**
-   * Yield the output and every output it reaches.
+   * Mark the output and every output it reaches as reachable.
    *
    * @param name {string|undefined} - The name of the output to walk.
-   * @yields {string} - The names of the reachable outputs.
    */
-  *#walk(name) {
+  #walk(name) {
     if (name === undefined || this.#reachableOutputs.has(name)) return
     this.#reachableOutputs.add(name)
-    yield name
-    const output = this.#metafile.outputs[name]
-
-    if (output.entryPoint !== undefined) {
-      for (const key of this.#reverseEntryPointMap[
-        path.relative(this.#projectRoot, output.entryPoint)
-      ]) {
-        this.#reachableKeys.add(key)
-      }
+    if (this.#metafile.outputs[`${name}.map`] !== undefined) {
+      this.#reachableOutputs.add(`${name}.map`)
     }
-
+    const output = this.#metafile.outputs[name]
     for (const { path: entryPoint } of output.imports) {
       const source = this.#entryPointSourceMap[entryPoint]
       if (source !== undefined && this.#entryPointToOutput[source] !== undefined) {
-        yield* this.#walk(this.#entryPointToOutput[source])
+        this.#walk(this.#entryPointToOutput[source])
       } else if (this.#metafile.outputs[entryPoint] !== undefined) {
-        yield* this.#walk(entryPoint)
+        this.#walk(entryPoint)
       }
     }
-
-    yield* this.#walk(output.cssBundle)
+    this.#walk(output.cssBundle)
   }
 
   /**
-   * Return the import-map keys and outputs reachable from the project's entry points.
+   * Walk every first-party entry point and return the reachable outputs.
    *
-   * @return {{reachableKeys: Set<string>, reachableOutputs: Set<string>}} - The reachable import-map keys and output file paths to keep.
+   * @return {Set<string>} - The output file paths to keep.
    */
   reachable() {
     for (const [source, name] of Object.entries(this.#entryPointToOutput)) {
       if (source.split(path.sep)[0] !== 'node_modules') {
-        for (const output of this.#walk(name)) {
-          if (this.#metafile.outputs[`${output}.map`] !== undefined) {
-            this.#reachableOutputs.add(`${output}.map`)
-          }
-        }
+        this.#walk(name)
       }
     }
-    return {
-      reachableKeys: this.#reachableKeys,
-      reachableOutputs: this.#reachableOutputs,
-    }
+    return this.#reachableOutputs
   }
 }
 
@@ -311,7 +290,7 @@ class TreeShaker {
  * @param metafile {esbuild.Metafile} - The esbuild build metafile.
  * @param entryPointSourceMap {Object.<string,string>} - A map of entry points to their file paths.
  * @param projectRoot {string} - The root directory of the project.
- * @return {{reachableKeys: Set<string>, reachableOutputs: Set<string>}} - The reachable import-map keys and output file paths to keep.
+ * @return {Set<string>} - The output file paths to keep.
  */
 export function treeShake(metafile, entryPointSourceMap, projectRoot) {
   return new TreeShaker(metafile, entryPointSourceMap, projectRoot).reachable()
@@ -346,7 +325,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
       for (const e of reverseEntryPointMap[
         path.relative(projectRoot, output.entryPoint)
       ]) {
-        if (reachable === undefined || reachable.reachableKeys.has(e)) {
+        if (reachable === undefined || reachable.has(name)) {
           entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
         }
       }
@@ -355,7 +334,7 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
 
   if (reachable !== undefined) {
     for (const name of Object.keys(result.metafile.outputs)) {
-      if (!reachable.reachableOutputs.has(name)) {
+      if (!reachable.has(name)) {
         await fs.rm(name, { force: true })
       }
     }

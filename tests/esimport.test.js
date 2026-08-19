@@ -402,48 +402,45 @@ describe('treeShake', () => {
     }
   }
 
-  test('keeps 1st-party root entry point and its output', () => {
-    const { reachableKeys, reachableOutputs } = esimport.treeShake(
+  test('keeps the 1st-party root entry point output', () => {
+    const reachable = esimport.treeShake(
       makeMetafile(),
       entryPointSourceMap,
       projectRoot,
     )
-    assert(reachableKeys.has('app'))
-    assert(reachableOutputs.has('/project/out/app.js'))
+    assert(reachable.has('/project/out/app.js'))
   })
 
-  test('keeps transitively imported dep subpath and drops unreferenced dep', () => {
-    const { reachableKeys, reachableOutputs } = esimport.treeShake(
+  test('keeps a transitively imported dep subpath and drops an unreferenced dep', () => {
+    const reachable = esimport.treeShake(
       makeMetafile(),
       entryPointSourceMap,
       projectRoot,
     )
-    assert(reachableKeys.has('dep/sub'))
-    assert(reachableOutputs.has('/project/out/dep-locale.js'))
-    assert(!reachableKeys.has('dep'))
-    assert(!reachableOutputs.has('/project/out/dep.js'))
+    assert(reachable.has('/project/out/dep-locale.js'))
+    assert(!reachable.has('/project/out/dep.js'))
   })
 
-  test('keeps cssBundle output for a reachable output', () => {
-    const { reachableOutputs } = esimport.treeShake(
+  test('keeps the cssBundle output for a reachable output', () => {
+    const reachable = esimport.treeShake(
       makeMetafile(),
       entryPointSourceMap,
       projectRoot,
     )
-    assert(reachableOutputs.has('/project/out/styles.css'))
+    assert(reachable.has('/project/out/styles.css'))
   })
 
   test('keeps split-chunk outputs referenced via imports', () => {
-    const { reachableOutputs } = esimport.treeShake(
+    const reachable = esimport.treeShake(
       makeMetafile(),
       entryPointSourceMap,
       projectRoot,
     )
-    assert(reachableOutputs.has('/project/out/chunk.js'))
+    assert(reachable.has('/project/out/chunk.js'))
   })
 
   test('keeps .map companion outputs for reachable outputs', () => {
-    const { reachableOutputs } = esimport.treeShake(
+    const reachable = esimport.treeShake(
       makeMetafile(),
       entryPointSourceMap,
       projectRoot,
@@ -454,9 +451,9 @@ describe('treeShake', () => {
       '/project/out/styles.css.map',
       '/project/out/chunk.js.map',
     ]) {
-      assert(reachableOutputs.has(name))
+      assert(reachable.has(name))
     }
-    assert(!reachableOutputs.has('/project/out/dep.js.map'))
+    assert(!reachable.has('/project/out/dep.js.map'))
   })
 })
 
