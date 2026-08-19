@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import assert from 'node:assert/strict'
 import process from 'node:process'
 import path from 'node:path'
 import { describe, mock, test } from 'node:test'
@@ -8,7 +8,7 @@ import { run, UnenvResolvePlugin } from 'esimport'
 
 describe('integrityHashes', () => {
   test('default algorithms', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       [...esimport.integrityHashes('foo')],
       [
         'sha256-LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=',
@@ -19,7 +19,7 @@ describe('integrityHashes', () => {
   })
 
   test('custom algorithms', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       [...esimport.integrityHashes('foo', ['sha512'])],
       [
         'sha512-9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==',
@@ -134,13 +134,13 @@ describe('resolveImport', () => {
 
 describe('resolveEntryPoints', () => {
   test('string', () => {
-    assert.deepStrictEqual(esimport.resolveEntryPoints('fellowship', './ring.js'), {
+    assert.deepEqual(esimport.resolveEntryPoints('fellowship', './ring.js'), {
       fellowship: './ring.js',
     })
   })
 
   test('array', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       esimport.resolveEntryPoints('fellowship', ['./ring.js', './gandalf.js']),
       {
         'fellowship/ring.js': './ring.js',
@@ -150,7 +150,7 @@ describe('resolveEntryPoints', () => {
   })
 
   test('object', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       esimport.resolveEntryPoints('fellowship', {
         ring: './ring.js',
         gandalf: './gandalf.js',
@@ -163,7 +163,7 @@ describe('resolveEntryPoints', () => {
   })
 
   test('single entrypoint object', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       esimport.resolveEntryPoints('fellowship', {
         default: './ring.mjs',
         node: './ring.cjs',
@@ -184,7 +184,7 @@ describe('resolveEntryPoints', () => {
 
 describe('expandSubpathPattern', () => {
   test('no wildcard', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandSubpathPattern(
         './src/index.js',
         'tests/fixtures/fellowship',
@@ -194,7 +194,7 @@ describe('expandSubpathPattern', () => {
   })
 
   test('wildcard w/ subpath', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       new Set(
         await esimport.expandSubpathPattern('./src/*.js', 'tests/fixtures/fellowship'),
       ),
@@ -208,7 +208,7 @@ describe('expandSubpathPattern', () => {
   })
 
   test('wildcard w/o subpath', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandSubpathPattern(
         './src/hobbits/*.js',
         'tests/fixtures/fellowship',
@@ -218,7 +218,7 @@ describe('expandSubpathPattern', () => {
   })
 
   test('no match', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandSubpathPattern('./src/*.js', 'tests/fixtures/rings'),
       [],
     )
@@ -227,7 +227,7 @@ describe('expandSubpathPattern', () => {
 
 describe('expandEntryPoints', () => {
   test('string', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandEntryPoints(
         'fellowship',
         './src/index.js',
@@ -241,7 +241,7 @@ describe('expandEntryPoints', () => {
   })
 
   test('array', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandEntryPoints(
         'fellowship',
         ['./src/index.js', './src/hobbits/*.js'],
@@ -257,7 +257,7 @@ describe('expandEntryPoints', () => {
   })
 
   test('object', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandEntryPoints(
         'fellowship',
         {
@@ -276,7 +276,7 @@ describe('expandEntryPoints', () => {
   })
 
   test('exclude', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.expandEntryPoints(
         'fellowship',
         {
@@ -299,7 +299,7 @@ describe('expandEntryPoints', () => {
 
 describe('bundleExports', () => {
   test('exports', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.bundleExports(
         path.join(process.cwd(), 'tests/fixtures/fellowship'),
         path.join(process.cwd(), 'tests/fixtures'),
@@ -315,7 +315,7 @@ describe('bundleExports', () => {
 
 describe('invertObject', () => {
   test('invert object', () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       esimport.invertObject({
         foo: 'bar',
         baz: 'qux',
@@ -330,7 +330,7 @@ describe('invertObject', () => {
 
 describe('compileEntryPoints', () => {
   test('compile entry points', async () => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.compileEntryPoints(
         path.join(import.meta.dirname, 'fixtures/fellowship'),
       ),
@@ -352,7 +352,7 @@ describe('UnenvResolvePlugin', () => {
     const onResolve = mock.fn()
     const build = { onResolve }
     plugin.setup(build)
-    assert.deepStrictEqual(onResolve.mock.calls[0].arguments, [
+    assert.deepEqual(onResolve.mock.calls[0].arguments, [
       {
         filter:
           /^(node:)?(assert|assert\/strict|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|dns\/promises|domain|events|fs|fs\/promises|http|http2|https|inspector|inspector\/promises|module|net|os|path|path\/posix|path\/win32|perf_hooks|process|punycode|querystring|readline|readline\/promises|repl|stream|stream\/consumers|stream\/promises|stream\/web|string_decoder|sys|timers|timers\/promises|tls|trace_events|tty|url|util|util\/types|v8|vm|wasi|worker_threads|zlib)$/,
@@ -362,18 +362,15 @@ describe('UnenvResolvePlugin', () => {
   })
 
   test('unenvCallback', async () => {
-    assert.deepStrictEqual(
-      await esimport.UnenvResolvePlugin.unenvCallback({ path: 'url' }),
-      {
-        external: false,
-        path: path.join(
-          import.meta.dirname,
-          `../node_modules/unenv/dist/runtime/node/url.mjs`,
-        ),
-      },
-    )
+    assert.deepEqual(await esimport.UnenvResolvePlugin.unenvCallback({ path: 'url' }), {
+      external: false,
+      path: path.join(
+        import.meta.dirname,
+        `../node_modules/unenv/dist/runtime/node/url.mjs`,
+      ),
+    })
 
-    assert.deepStrictEqual(
+    assert.deepEqual(
       await esimport.UnenvResolvePlugin.unenvCallback({ path: 'node:url' }),
       {
         external: false,
@@ -393,7 +390,7 @@ describe('run', () => {
       path.join(import.meta.dirname, 'fixtures/out'),
       { watch: false, verbose: true },
     )
-    assert.deepStrictEqual(result, {
+    assert.deepEqual(result, {
       imports: {
         fellowship: './src/index-5CNBNISI.js',
         'fellowship/hobbits/sam.js': './src/hobbits/sam-7ELSRYCS.js',
@@ -413,7 +410,7 @@ describe('run', () => {
 
 describe('parsePort', () => {
   test('parsePort', () => {
-    assert.deepStrictEqual(esimport.parsePort('3000'), 3000)
+    assert.deepEqual(esimport.parsePort('3000'), 3000)
     assert.throws(
       () => esimport.parsePort('80'),
       /Port must be between 1024 and 49151./,
