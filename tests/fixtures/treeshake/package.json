@@ -1,0 +1,11 @@
+{
+  "name": "treeshake-app",
+  "version": "1.0.0",
+  "description": "Test fixture for import map treeshaking.",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "date-utils": "1.0.0"
+  }
+}

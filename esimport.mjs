@@ -221,6 +221,73 @@ export async function bundleExports(cwd, projectRoot) {
 }
 
 /**
+ * Determine the reachable entry points and output files from the build metafile.
+ *
+ * Walks the reachability graph from the project's own (1st-party) entry points. Only
+ * dependency entry points that are reachable from 1st-party code are kept in the
+ * import map; all other generated files are dropped.
+ *
+ * @param metafile {esbuild.Metafile} - The esbuild build metafile.
+ * @param entryPointSourceMap {Object.<string,string>} - A map of entry points to their file paths.
+ * @param projectRoot {string} - The root directory of the project.
+ * @return {{reachableKeys: Set<string>, reachableOutputs: Set<string>}} - The reachable import-map keys and output file paths to keep.
+ */
+export function treeShake(metafile, entryPointSourceMap, projectRoot) {
+  const reachableKeys = new Set()
+  const reachableOutputs = new Set()
+  const reverseEntryPointMap = invertObject(entryPointSourceMap)
+  const entryPointToOutput = {}
+
+  for (const [name, output] of Object.entries(metafile.outputs)) {
+    if (output.entryPoint !== undefined) {
+      entryPointToOutput[path.relative(projectRoot, output.entryPoint)] = name
+    }
+  }
+
+  const queue = []
+
+  function mark(name) {
+    if (name === undefined || reachableOutputs.has(name)) return
+    reachableOutputs.add(name)
+    if (metafile.outputs[`${name}.map`] !== undefined) {
+      reachableOutputs.add(`${name}.map`)
+    }
+    queue.push(name)
+  }
+
+  for (const [source, name] of Object.entries(entryPointToOutput)) {
+    if (source.split(path.sep)[0] !== 'node_modules') {
+      mark(name)
+    }
+  }
+
+  while (queue.length > 0) {
+    const output = metafile.outputs[queue.shift()]
+
+    if (output.entryPoint !== undefined) {
+      for (const key of reverseEntryPointMap[
+        path.relative(projectRoot, output.entryPoint)
+      ]) {
+        reachableKeys.add(key)
+      }
+    }
+
+    for (const { path: entryPoint } of output.imports) {
+      const source = entryPointSourceMap[entryPoint]
+      if (source !== undefined && entryPointToOutput[source] !== undefined) {
+        mark(entryPointToOutput[source])
+      } else if (metafile.outputs[entryPoint] !== undefined) {
+        mark(entryPoint)
+      }
+    }
+
+    mark(output.cssBundle)
+  }
+
+  return { reachableKeys, reachableOutputs }
+}
+
+/**
  * Build the project using esbuild.
  *
  * @param projectRoot {string} - The root directory of the project.
@@ -237,6 +304,10 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   }
   console.info(`${Object.keys(result.metafile.inputs).length} ES modules processed.`)
 
+  const reachable =
+    options.treeshake === false
+      ? undefined
+      : treeShake(result.metafile, entryPointSourceMap, projectRoot)
   const reverseEntryPointMap = invertObject(entryPointSourceMap)
 
   let entryPointOutputMap = {}
@@ -245,7 +316,17 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
       for (const e of reverseEntryPointMap[
         path.relative(projectRoot, output.entryPoint)
       ]) {
-        entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
+        if (reachable === undefined || reachable.reachableKeys.has(e)) {
+          entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
+        }
+      }
+    }
+  }
+
+  if (reachable !== undefined) {
+    for (const name of Object.keys(result.metafile.outputs)) {
+      if (!reachable.reachableOutputs.has(name)) {
+        await fs.rm(name, { force: true })
       }
     }
   }
@@ -568,6 +649,7 @@ export async function main(argv) {
       '-p, --path-prefix <path>',
       'Prefix all import paths with the given path. Useful when serving behind a reverse proxy.',
     )
+    .option('--no-treeshake', 'Bundle all entry points into the import map.')
     .argument(
       '<package-dir>',
       'Path to package that will transformed. The directory must contain a valid package.json file.',
