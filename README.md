@@ -39,11 +39,18 @@ ESM is the future. _No bundling, no bullsh\*t._
 ## Usage
 
 ```bash
-# esimport <package-root> <output-dir> [--watch,--serve,--path-prefix,--verbose,--no-treeshake,--help]
+# esimport <package-root> <output-dir> [--watch,--serve,--path-prefix,--verbose,--treeshake,--help]
 npx esimport . ./public/static/  --serve
 ```
 
 That's it!
+
+### Treeshaking
+
+By default, esimport bundles every entry point into the import map. Pass
+`--treeshake` to drop [package entry points](https://nodejs.org/api/packages.html#package-entry-points)
+that are not reachable from the project's own entry points, keeping the
+outputs actually imported and removing the rest.
 
 ### Output
 

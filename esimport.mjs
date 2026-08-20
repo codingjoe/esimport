@@ -312,10 +312,9 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   }
   console.info(`${Object.keys(result.metafile.inputs).length} ES modules processed.`)
 
-  const reachable =
-    options.treeshake === false
-      ? undefined
-      : treeShake(result.metafile, entryPointSourceMap, projectRoot)
+  const reachable = options.treeshake
+    ? treeShake(result.metafile, entryPointSourceMap, projectRoot)
+    : undefined
   const reverseEntryPointMap = invertObject(entryPointSourceMap)
 
   let entryPointOutputMap = {}
@@ -656,7 +655,7 @@ export async function main(argv) {
       '-p, --path-prefix <path>',
       'Prefix all import paths with the given path. Useful when serving behind a reverse proxy.',
     )
-    .option('--no-treeshake', 'Bundle all entry points into the import map.')
+    .option('--treeshake', 'Drop unused entry points from the import map.')
     .argument(
       '<package-dir>',
       'Path to package that will transformed. The directory must contain a valid package.json file.',

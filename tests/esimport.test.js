@@ -548,12 +548,13 @@ describe('run (treeshake)', () => {
     return files.sort()
   }
 
-  test('treeshakes unreachable dependency entry points by default', async () => {
+  test('treeshakes unreachable dependency entry points when enabled', async () => {
     await fs.rm(outputDir, { recursive: true, force: true })
     try {
       const result = await esimport.run(fixtureDir, outputDir, {
         watch: false,
         verbose: false,
+        treeshake: true,
       })
       assert.deepEqual(Object.keys(result.imports).sort(), [
         'date-utils/locale',
@@ -597,13 +598,12 @@ describe('run (treeshake)', () => {
     }
   })
 
-  test('keeps all entry points when treeshake is disabled', async () => {
+  test('keeps all entry points by default', async () => {
     await fs.rm(outputDir, { recursive: true, force: true })
     try {
       const result = await esimport.run(fixtureDir, outputDir, {
         watch: false,
         verbose: false,
-        treeshake: false,
       })
       assert.deepEqual(Object.keys(result.imports).sort(), [
         'date-utils',
