@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { describe, mock, test } from 'node:test'
@@ -327,6 +328,134 @@ describe('invertObject', () => {
   })
 })
 
+describe('treeShake', () => {
+  const projectRoot = '/project'
+  const entryPointSourceMap = {
+    app: 'src/index.js',
+    dep: 'node_modules/dep/index.js',
+    'dep/sub': 'node_modules/dep/locale/index.js',
+  }
+
+  function makeMetafile() {
+    return {
+      outputs: {
+        '/project/out/app.js': {
+          entryPoint: path.join(projectRoot, 'src/index.js'),
+          imports: [
+            { path: 'dep/sub', kind: 'import-statement', external: false },
+            {
+              path: '/project/out/chunk.js',
+              kind: 'import-statement',
+              external: false,
+            },
+          ],
+          cssBundle: '/project/out/styles.css',
+          inputs: {},
+        },
+        '/project/out/app.js.map': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/dep.js': {
+          entryPoint: path.join(projectRoot, 'node_modules/dep/index.js'),
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/dep.js.map': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/dep-locale.js': {
+          entryPoint: path.join(projectRoot, 'node_modules/dep/locale/index.js'),
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/dep-locale.js.map': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/styles.css': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/styles.css.map': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/chunk.js': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+        '/project/out/chunk.js.map': {
+          entryPoint: undefined,
+          imports: [],
+          inputs: {},
+        },
+      },
+    }
+  }
+
+  test('keeps the 1st-party root entry point output', () => {
+    const reachable = esimport.treeShake(
+      makeMetafile(),
+      entryPointSourceMap,
+      projectRoot,
+    )
+    assert(reachable.has('/project/out/app.js'))
+  })
+
+  test('keeps a transitively imported dep subpath and drops an unreferenced dep', () => {
+    const reachable = esimport.treeShake(
+      makeMetafile(),
+      entryPointSourceMap,
+      projectRoot,
+    )
+    assert(reachable.has('/project/out/dep-locale.js'))
+    assert(!reachable.has('/project/out/dep.js'))
+  })
+
+  test('keeps the cssBundle output for a reachable output', () => {
+    const reachable = esimport.treeShake(
+      makeMetafile(),
+      entryPointSourceMap,
+      projectRoot,
+    )
+    assert(reachable.has('/project/out/styles.css'))
+  })
+
+  test('keeps split-chunk outputs referenced via imports', () => {
+    const reachable = esimport.treeShake(
+      makeMetafile(),
+      entryPointSourceMap,
+      projectRoot,
+    )
+    assert(reachable.has('/project/out/chunk.js'))
+  })
+
+  test('keeps .map companion outputs for reachable outputs', () => {
+    const reachable = esimport.treeShake(
+      makeMetafile(),
+      entryPointSourceMap,
+      projectRoot,
+    )
+    for (const name of [
+      '/project/out/app.js.map',
+      '/project/out/dep-locale.js.map',
+      '/project/out/styles.css.map',
+      '/project/out/chunk.js.map',
+    ]) {
+      assert(reachable.has(name))
+    }
+    assert(!reachable.has('/project/out/dep.js.map'))
+  })
+})
+
 describe('compileEntryPoints', () => {
   test('compile entry points', async () => {
     assert.deepEqual(
@@ -404,6 +533,98 @@ describe('run', () => {
           'sha256-75BZz/UpPligxcmAdJnH+TJd/CIyRSjLA54xBpnRakQ= sha384-7mjoGvP3jSYReNFlnO6afThCYcCfvesfEDNcFTyAy3SAv5nJRCkYQ3ptT7kn43AK sha512-7dyswrItDz1PnA44eyfyzvWT1BqBf3AVXfBay914dNi3dJUSTOa0LE2zyGT/b+lNNNPLAS/+P87BL24pMsZZAA==',
       },
     })
+  })
+})
+
+describe('run (treeshake)', () => {
+  const fixtureDir = path.join(import.meta.dirname, 'fixtures/treeshake')
+  const outputDir = path.join(import.meta.dirname, 'fixtures/treeshake/out')
+
+  async function listFiles(dir) {
+    const files = []
+    for (const entry of await fs.readdir(dir, { recursive: true })) {
+      if ((await fs.stat(path.join(dir, entry))).isFile()) files.push(entry)
+    }
+    return files.sort()
+  }
+
+  test('treeshakes unreachable dependency entry points when enabled', async () => {
+    await fs.rm(outputDir, { recursive: true, force: true })
+    try {
+      const result = await esimport.run(fixtureDir, outputDir, {
+        watch: false,
+        verbose: false,
+        treeshake: true,
+      })
+      assert.deepEqual(Object.keys(result.imports).sort(), [
+        'date-utils/locale',
+        'treeshake-app',
+      ])
+      assert.deepEqual(
+        Object.keys(result.integrity).sort(),
+        Object.values(result.imports).sort(),
+      )
+      const files = await listFiles(outputDir)
+      const outputFiles = files.join('\n')
+      assert(files.includes('importmap.json'))
+      assert.match(outputFiles, /^src\/index-.*\.js$/m, 'expected kept src/index-*.js')
+      assert.match(
+        outputFiles,
+        /^src\/index-.*\.js\.map$/m,
+        'expected kept src/index-*.js.map',
+      )
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/locale\/index-.*\.js$/m,
+        'expected kept date-utils/locale output',
+      )
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/locale\/index-.*\.js\.map$/m,
+        'expected kept date-utils/locale .map',
+      )
+      assert.doesNotMatch(
+        outputFiles,
+        /^node_modules\/date-utils\/index-.*/m,
+        'unused date-utils output must be removed',
+      )
+      assert.doesNotMatch(
+        outputFiles,
+        /^node_modules\/date-utils\/fp\/index-.*/m,
+        'unused date-utils/fp output must be removed',
+      )
+    } finally {
+      await fs.rm(outputDir, { recursive: true, force: true })
+    }
+  })
+
+  test('keeps all entry points by default', async () => {
+    await fs.rm(outputDir, { recursive: true, force: true })
+    try {
+      const result = await esimport.run(fixtureDir, outputDir, {
+        watch: false,
+        verbose: false,
+      })
+      assert.deepEqual(Object.keys(result.imports).sort(), [
+        'date-utils',
+        'date-utils/fp',
+        'date-utils/locale',
+        'treeshake-app',
+      ])
+      const outputFiles = (await listFiles(outputDir)).join('\n')
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/index-.*\.js$/m,
+        'date-utils output should exist without treeshake',
+      )
+      assert.match(
+        outputFiles,
+        /^node_modules\/date-utils\/fp\/index-.*\.js$/m,
+        'date-utils/fp output should exist without treeshake',
+      )
+    } finally {
+      await fs.rm(outputDir, { recursive: true, force: true })
+    }
   })
 })
 

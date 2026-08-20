@@ -1,0 +1,4 @@
+# Re-include the dependency fixture, which is otherwise excluded by the
+# top-level node_modules/ rule.
+!node_modules/
+!node_modules/**

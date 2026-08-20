@@ -220,6 +220,82 @@ export async function bundleExports(cwd, projectRoot) {
 }
 
 /**
+ * The reachability graph walker over the build metafile.
+ */
+class TreeShaker {
+  #metafile
+  #entryPointSourceMap
+  #reachableOutputs = new Set()
+  #entryPointToOutput
+
+  /**
+   * Walker over the metafile's reachability graph from the project's own entry points.
+   *
+   * @param metafile {esbuild.Metafile} - The esbuild build metafile.
+   * @param entryPointSourceMap {Object.<string,string>} - A map of entry points to their file paths.
+   * @param projectRoot {string} - The root directory of the project.
+   */
+  constructor(metafile, entryPointSourceMap, projectRoot) {
+    this.#metafile = metafile
+    this.#entryPointSourceMap = entryPointSourceMap
+    this.#entryPointToOutput = Object.fromEntries(
+      Object.entries(metafile.outputs)
+        .filter(([, output]) => output.entryPoint !== undefined)
+        .map(([name, output]) => [path.relative(projectRoot, output.entryPoint), name]),
+    )
+  }
+
+  /**
+   * Mark the output and every output it reaches as reachable.
+   *
+   * @param name {string|undefined} - The name of the output to walk.
+   */
+  #walk(name) {
+    if (name === undefined || this.#reachableOutputs.has(name)) return
+    this.#reachableOutputs.add(name)
+    if (this.#metafile.outputs[`${name}.map`] !== undefined) {
+      this.#reachableOutputs.add(`${name}.map`)
+    }
+    const output = this.#metafile.outputs[name]
+    for (const { path: entryPoint } of output.imports) {
+      const source = this.#entryPointSourceMap[entryPoint]
+      if (source !== undefined && this.#entryPointToOutput[source] !== undefined) {
+        this.#walk(this.#entryPointToOutput[source])
+      } else if (this.#metafile.outputs[entryPoint] !== undefined) {
+        this.#walk(entryPoint)
+      }
+    }
+    this.#walk(output.cssBundle)
+  }
+
+  /**
+   * Walk every first-party entry point and return the reachable outputs.
+   *
+   * @return {Set<string>} - The output file paths to keep.
+   */
+  reachable() {
+    for (const [source, name] of Object.entries(this.#entryPointToOutput)) {
+      if (source.split(path.sep)[0] !== 'node_modules') {
+        this.#walk(name)
+      }
+    }
+    return this.#reachableOutputs
+  }
+}
+
+/**
+ * Shake the project's import tree down to its reachable outputs.
+ *
+ * @param metafile {esbuild.Metafile} - The esbuild build metafile.
+ * @param entryPointSourceMap {Object.<string,string>} - A map of entry points to their file paths.
+ * @param projectRoot {string} - The root directory of the project.
+ * @return {Set<string>} - The output file paths to keep.
+ */
+export function treeShake(metafile, entryPointSourceMap, projectRoot) {
+  return new TreeShaker(metafile, entryPointSourceMap, projectRoot).reachable()
+}
+
+/**
  * Build the project using esbuild.
  *
  * @param projectRoot {string} - The root directory of the project.
@@ -236,6 +312,9 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
   }
   console.info(`${Object.keys(result.metafile.inputs).length} ES modules processed.`)
 
+  const reachable = options.treeshake
+    ? treeShake(result.metafile, entryPointSourceMap, projectRoot)
+    : undefined
   const reverseEntryPointMap = invertObject(entryPointSourceMap)
 
   let entryPointOutputMap = {}
@@ -244,7 +323,17 @@ async function build(projectRoot, outputDir, context, entryPointSourceMap, optio
       for (const e of reverseEntryPointMap[
         path.relative(projectRoot, output.entryPoint)
       ]) {
-        entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
+        if (reachable === undefined || reachable.has(name)) {
+          entryPointOutputMap[e] = `./${path.relative(outputDir, name)}`
+        }
+      }
+    }
+  }
+
+  if (reachable !== undefined) {
+    for (const name of Object.keys(result.metafile.outputs)) {
+      if (!reachable.has(name)) {
+        await fs.rm(name, { force: true })
       }
     }
   }
@@ -566,6 +655,7 @@ export async function main(argv) {
       '-p, --path-prefix <path>',
       'Prefix all import paths with the given path. Useful when serving behind a reverse proxy.',
     )
+    .option('--treeshake', 'Drop unused entry points from the import map.')
     .argument(
       '<package-dir>',
       'Path to package that will transformed. The directory must contain a valid package.json file.',
