@@ -1,0 +1,5 @@
+{
+  "name": "fallback-browser",
+  "version": "1.0.0",
+  "browser": "./browser.js"
+}

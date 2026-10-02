@@ -45,6 +45,24 @@ export function isParentDir(parent, child) {
 }
 
 /**
+ * Resolve symlinks in a path, tolerating a path that does not exist yet.
+ *
+ * `fs.realpath` rejects a missing path; the deepest existing ancestor is
+ * resolved instead and the remaining segments are appended as given. The
+ * output directory is created by esbuild on the first build.
+ *
+ * @param target {string} - The path to resolve.
+ * @return {Promise<string>} - The resolved path.
+ */
+export async function resolveRealPath(target) {
+  try {
+    return await fs.realpath(target)
+  } catch {
+    return path.join(await resolveRealPath(path.dirname(target)), path.basename(target))
+  }
+}
+
+/**
  * Invert an object's keys and values.
  * @param obj {Object.<string,string>} - The object to invert.
  * @return {Object.<string,string[]>} - The inverse of the given object.
@@ -114,6 +132,8 @@ export function path2EntryPoint(filePath, pathPattern, entryPointPattern) {
  *
  * The *-character represents any string including a / or filesystem separator.
  *
+ * TypeScript declaration files (`*.d.ts`) are dropped.
+ *
  * @param pattern {string} - The subpath pattern to expand.
  * @param cwd {string} - The current working directory.
  */
@@ -126,7 +146,10 @@ export async function expandSubpathPattern(pattern, cwd) {
       ignore: 'node_modules/**',
       posix: true,
     })
-  ).filter((filePath) => /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath))
+  ).filter(
+    (filePath) =>
+      !filePath.endsWith('.d.ts') && /\.([mc]?jsx?|tsx?|css|txt|json)$/.test(filePath),
+  )
 }
 
 /**
@@ -167,6 +190,11 @@ export function resolveEntryPoints(pkgName, entryPoints) {
 
 /**
  * Expand the subpaths for all patterns in the entry points.
+ *
+ * The returned map holds symlink-resolved paths, relative to the resolved
+ * project root. A match with a dangling symlink resolves as far as the
+ * existing path goes, instead of aborting the run.
+ *
  * @param pkgName {string} - The name of the package or # for imports.
  * @param entryPoints {object|string|string[]} - The entry points (exports/imports).
  * @param cwd {string} - The current working directory.
@@ -176,6 +204,7 @@ export function resolveEntryPoints(pkgName, entryPoints) {
 export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) {
   const entryPointMap = {}
   const excludePatterns = []
+  projectRoot = await resolveRealPath(projectRoot)
   for (const [entryPointPattern, pathPattern] of Object.entries(
     resolveEntryPoints(pkgName, entryPoints),
   )) {
@@ -184,7 +213,10 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
     } else {
       for (const subpath of await expandSubpathPattern(pathPattern, cwd)) {
         const importPath = path2EntryPoint(subpath, pathPattern, entryPointPattern)
-        entryPointMap[importPath] = path.relative(projectRoot, path.join(cwd, subpath))
+        entryPointMap[importPath] = path.relative(
+          projectRoot,
+          await resolveRealPath(path.join(cwd, subpath)),
+        )
       }
     }
   }
@@ -202,6 +234,16 @@ export async function expandEntryPoints(pkgName, entryPoints, cwd, projectRoot) 
   return entryPointMap
 }
 
+/**
+ * Resolve the published entry points of the package in the given directory.
+ *
+ * A package without an export map falls back to its `browser`, `module`, or
+ * `main` field, and finally to `./index.js`.
+ *
+ * @param cwd {string} - The directory of the package to read.
+ * @param projectRoot {string} - The root directory of the project.
+ * @return {Promise<{object}>} - A map of import paths to their file paths.
+ */
 export async function bundleExports(cwd, projectRoot) {
   const { default: packageInfo } = await import(
     `file://${path.join(cwd, 'package.json')}`,
@@ -209,11 +251,12 @@ export async function bundleExports(cwd, projectRoot) {
       with: { type: 'json' },
     }
   )
+  // todo: index.js only, extend to index.json/index.node if a dependency needs it
+  const entryPoint =
+    packageInfo.browser || packageInfo.module || packageInfo.main || './index.js'
   return await expandEntryPoints(
     packageInfo.name,
-    packageInfo.exports || {
-      '.': packageInfo.browser || packageInfo.module || packageInfo.main,
-    },
+    packageInfo.exports || { '.': entryPoint },
     cwd,
     projectRoot,
   )
@@ -543,12 +586,8 @@ export class UnenvResolvePlugin extends Object {
 }
 
 export async function run(packageDir, outputDir, options) {
-  packageDir = path.isAbsolute(packageDir)
-    ? packageDir
-    : path.join(process.cwd(), packageDir)
-  outputDir = path.isAbsolute(outputDir)
-    ? outputDir
-    : path.join(process.cwd(), outputDir)
+  packageDir = await fs.realpath(path.resolve(packageDir))
+  outputDir = await resolveRealPath(path.resolve(outputDir))
 
   const [entryPoints, external] = await compileEntryPoints(packageDir)
 
@@ -668,10 +707,27 @@ export async function main(argv) {
   program.parse(argv)
 }
 
-/* node:coverage ignore next 6 */
-if (
-  process.argv[1] === fileURLToPath(import.meta.url) ||
-  path.basename(process.argv[1]) === 'esimport' // npx
-) {
+/**
+ * Whether Node was asked to run this module as its entry point.
+ *
+ * Both sides are realpath-resolved: a pnpm `.bin` shim passes the unresolved
+ * `node_modules/<pkg>/esimport.mjs` symlink as `argv[1]`, while
+ * `import.meta.url` already holds the realpath. A missing or unreadable
+ * `argv[1]` (`node -e`, a deleted script) is not this module.
+ *
+ * @param argv {string[]} - The command line arguments (process.argv).
+ * @return {Promise<boolean>} - True, if this module is the process entry point.
+ */
+export async function isMainModule(argv) {
+  try {
+    const modulePath = await fs.realpath(fileURLToPath(import.meta.url))
+    return (await fs.realpath(argv[1])) === modulePath
+  } catch {
+    return false
+  }
+}
+
+/* node:coverage ignore next 3 */
+if (await isMainModule(process.argv)) {
   await main(process.argv)
 }
