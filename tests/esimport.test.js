@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { describe, mock, test } from 'node:test'
@@ -647,5 +649,280 @@ describe('main', () => {
       path.join(import.meta.dirname, 'fixtures/fellowship'),
       path.join(import.meta.dirname, 'fixtures/out'),
     ])
+  })
+})
+
+const pnpmDependencies = {
+  leftpad: '1.0.0',
+  'lodash.escape': '4.0.1',
+  widget: '1.0.0',
+}
+
+const symlinksSupported = await (async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'esimport-symlink-'))
+  try {
+    await fs.symlink(os.tmpdir(), path.join(dir, 'link'), 'junction')
+    return true
+  } catch {
+    return false
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true })
+  }
+})()
+
+const symlinkSkip = symlinksSupported
+  ? false
+  : 'symlinks are not supported on this platform'
+
+async function tempDir(prefix) {
+  return await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), prefix)))
+}
+
+async function makePnpmWorkspace() {
+  const workspace = await tempDir('esimport-pnpm-')
+  await fs.cp(path.join(import.meta.dirname, 'fixtures/pnpm'), workspace, {
+    recursive: true,
+  })
+  await fs.mkdir(path.join(workspace, 'node_modules'), { recursive: true })
+  for (const [name, version] of Object.entries(pnpmDependencies)) {
+    await fs.symlink(
+      path.join(
+        workspace,
+        'node_modules',
+        '.pnpm',
+        `${name}@${version}`,
+        'node_modules',
+        name,
+      ),
+      path.join(workspace, 'node_modules', name),
+      'junction',
+    )
+  }
+  return workspace
+}
+
+describe('expandSubpathPattern (pnpm fixture)', () => {
+  test('drops declaration files', async () => {
+    const widget = path.join(
+      import.meta.dirname,
+      'fixtures/pnpm/node_modules/.pnpm/widget@1.0.0/node_modules/widget',
+    )
+    assert.deepEqual((await esimport.expandSubpathPattern('./dist/*', widget)).sort(), [
+      './dist/chart.js',
+      './dist/index.js',
+      './dist/unused.js',
+    ])
+  })
+})
+
+describe('bundleExports fallbacks', () => {
+  const fallbacks = [
+    ['browser', 'fallback-browser', 'browser.js'],
+    ['module', 'fallback-module', 'module.js'],
+    ['main', 'fallback-main', 'main.js'],
+    ['implicit', 'fallback-implicit', 'index.js'],
+  ]
+  for (const [dir, name, entry] of fallbacks) {
+    test(`uses the ${dir} field`, async () => {
+      assert.deepEqual(
+        await esimport.bundleExports(
+          path.join(import.meta.dirname, 'fixtures/fallbacks', dir),
+          path.join(import.meta.dirname, 'fixtures/fallbacks'),
+        ),
+        { [name]: `${dir}/${entry}` },
+      )
+    })
+  }
+})
+
+describe('pnpm symlinked node_modules', () => {
+  const widgetEntries = {
+    'widget/chart.js':
+      'node_modules/.pnpm/widget@1.0.0/node_modules/widget/dist/chart.js',
+    'widget/index.js':
+      'node_modules/.pnpm/widget@1.0.0/node_modules/widget/dist/index.js',
+    'widget/unused.js':
+      'node_modules/.pnpm/widget@1.0.0/node_modules/widget/dist/unused.js',
+  }
+
+  test('compileEntryPoints names symlinked dependencies', {
+    skip: symlinkSkip,
+  }, async () => {
+    const workspace = await makePnpmWorkspace()
+    try {
+      const [entryPoints, external] = await esimport.compileEntryPoints(workspace)
+      assert.deepEqual(entryPoints, {
+        'pnpm-app': 'src/index.js',
+        leftpad: 'node_modules/.pnpm/leftpad@1.0.0/node_modules/leftpad/index.js',
+        'lodash.escape':
+          'node_modules/.pnpm/lodash.escape@4.0.1/node_modules/lodash.escape/index.js',
+        ...widgetEntries,
+      })
+      assert.deepEqual(
+        external.sort(),
+        [
+          'pnpm-app',
+          'leftpad',
+          'lodash.escape',
+          'widget/chart.js',
+          'widget/index.js',
+          'widget/unused.js',
+          'widget',
+        ].sort(),
+      )
+    } finally {
+      await fs.rm(workspace, { recursive: true, force: true })
+    }
+  })
+
+  test('bundleExports resolves a symlinked package', {
+    skip: symlinkSkip,
+  }, async () => {
+    const workspace = await makePnpmWorkspace()
+    try {
+      assert.deepEqual(
+        await esimport.bundleExports(
+          path.join(workspace, 'node_modules', 'widget'),
+          workspace,
+        ),
+        widgetEntries,
+      )
+    } finally {
+      await fs.rm(workspace, { recursive: true, force: true })
+    }
+  })
+
+  test('expandEntryPoints resolves symlinked subpaths', {
+    skip: symlinkSkip,
+  }, async () => {
+    const workspace = await makePnpmWorkspace()
+    try {
+      assert.deepEqual(
+        await esimport.expandEntryPoints(
+          'widget',
+          { './*': './dist/*' },
+          path.join(workspace, 'node_modules', 'widget'),
+          workspace,
+        ),
+        widgetEntries,
+      )
+    } finally {
+      await fs.rm(workspace, { recursive: true, force: true })
+    }
+  })
+
+  test('run names and treeshakes dependency entries through a symlinked project', {
+    skip: symlinkSkip,
+  }, async () => {
+    const workspace = await makePnpmWorkspace()
+    const outputRoot = await tempDir('esimport-pnpm-out-')
+    const outputDir = path.join(outputRoot, 'out')
+    const projectLink = path.join(outputRoot, 'pnpm-app')
+    await fs.symlink(workspace, projectLink, 'junction')
+    try {
+      const result = await esimport.run(projectLink, outputDir, {
+        watch: false,
+        verbose: false,
+        treeshake: true,
+      })
+      assert.deepEqual(Object.keys(result.imports).sort(), [
+        'leftpad',
+        'lodash.escape',
+        'pnpm-app',
+        'widget/chart.js',
+      ])
+      assert.deepEqual(
+        Object.keys(result.integrity).sort(),
+        Object.values(result.imports).sort(),
+      )
+      const files = []
+      for (const entry of await fs.readdir(outputDir, { recursive: true })) {
+        if ((await fs.stat(path.join(outputDir, entry))).isFile()) {
+          files.push(entry)
+        }
+      }
+      const outputFiles = files.join('\n')
+      assert.match(outputFiles, /^importmap\.json$/m)
+      assert.match(
+        outputFiles,
+        /^node_modules\/\.pnpm\/leftpad@1\.0\.0\/node_modules\/leftpad\/index-.*\.js$/m,
+      )
+      assert.match(
+        outputFiles,
+        /^node_modules\/\.pnpm\/lodash\.escape@4\.0\.1\/node_modules\/lodash\.escape\/index-.*\.js$/m,
+      )
+      assert.match(
+        outputFiles,
+        /^node_modules\/\.pnpm\/widget@1\.0\.0\/node_modules\/widget\/dist\/chart-.*\.js$/m,
+      )
+      assert.doesNotMatch(outputFiles, /widget\/dist\/index-/)
+      assert.doesNotMatch(outputFiles, /widget\/dist\/unused-/)
+    } finally {
+      await fs.rm(outputRoot, { recursive: true, force: true })
+      await fs.rm(workspace, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('isMainModule', () => {
+  const moduleFile = path.resolve(import.meta.dirname, '../esimport.mjs')
+
+  test('true for a symlinked entry point', { skip: symlinkSkip }, async () => {
+    const dir = await tempDir('esimport-link-')
+    try {
+      const link = path.join(dir, 'esimport.mjs')
+      await fs.symlink(moduleFile, link)
+      assert.strictEqual(await esimport.isMainModule(['node', link]), true)
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('false for another module', async () => {
+    assert.strictEqual(
+      await esimport.isMainModule(['node', import.meta.filename]),
+      false,
+    )
+  })
+
+  test('false for a missing argv[1]', async () => {
+    assert.strictEqual(await esimport.isMainModule(['node']), false)
+  })
+
+  test('false for a path that does not exist', async () => {
+    assert.strictEqual(
+      await esimport.isMainModule([
+        'node',
+        path.join(import.meta.dirname, 'fixtures/not-a-module.mjs'),
+      ]),
+      false,
+    )
+  })
+})
+
+describe('CLI through a symlinked bin', () => {
+  test('writes the import map', { skip: symlinkSkip }, async () => {
+    const dir = await tempDir('esimport-cli-')
+    const outputDir = path.join(dir, 'out')
+    try {
+      const link = path.join(dir, 'esimport.mjs')
+      await fs.symlink(path.resolve(import.meta.dirname, '../esimport.mjs'), link)
+      const { status, stderr } = spawnSync(
+        process.execPath,
+        [link, path.join(import.meta.dirname, 'fixtures/fellowship'), outputDir],
+        { cwd: dir, encoding: 'utf8' },
+      )
+      assert.strictEqual(status, 0, stderr)
+      const importMap = JSON.parse(
+        await fs.readFile(path.join(outputDir, 'importmap.json'), 'utf8'),
+      )
+      assert.deepEqual(Object.keys(importMap.imports).sort(), [
+        'fellowship',
+        'fellowship/hobbits/frodo.js',
+        'fellowship/hobbits/sam.js',
+      ])
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
   })
 })
