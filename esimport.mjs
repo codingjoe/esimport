@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto'
+import { watch as watchFile } from 'node:fs'
 import fs from 'node:fs/promises'
 import * as http from 'node:http'
 import path from 'node:path'
@@ -18,6 +19,8 @@ import { minimatch } from 'minimatch'
 import handler from 'serve-handler'
 import esimportPkgInfo from './package.json' with { type: 'json' }
 
+const rebuildDelayMs = 100
+
 /**
  * Yield integrity hashes for the given data using each of the specified algorithms.
  *
@@ -30,18 +33,6 @@ export function* integrityHashes(data, algorithms = ['sha256', 'sha384', 'sha512
     const hash = crypto.createHash(algorithm).update(data).digest('base64')
     yield `${algorithm.toLowerCase().replace(/-/, '')}-${hash}`
   }
-}
-
-/**
- * The given path is inside another given parent path.
- *
- * @param parent {string} - Absolute parent path.
- * @param child {string} - Absolute child path.
- * @return {boolean} - True, if child inside the parent path.
- */
-export function isParentDir(parent, child) {
-  const relative = path.relative(parent, child)
-  return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
 /**
@@ -434,7 +425,6 @@ export async function watch(
 ) {
   const ac = new AbortController()
   const { signal } = ac
-  const watcher = fs.watch(projectRoot, { signal, recursive: true })
   process.on('SIGINT', async () => {
     ac.abort()
     if (server !== undefined) {
@@ -442,17 +432,44 @@ export async function watch(
       await server.close(process.exit)
     }
   })
-  try {
-    for await (const event of watcher) {
-      if (!isParentDir(outputDir, path.join(projectRoot, event.filename))) {
-        await build(projectRoot, outputDir, context, entryPointSourceMap, options)
+
+  let timer
+  let rebuilds = Promise.resolve()
+
+  function rebuild() {
+    rebuilds = rebuilds
+      .then(() => build(projectRoot, outputDir, context, entryPointSourceMap, options))
+      .catch((error) => console.error('Build failed:', error.message))
+  }
+
+  function watchEntryPoint(filePath) {
+    let watcher
+    function onChange(eventType) {
+      if (eventType === 'rename') {
+        watcher.close()
+        watchEntryPoint(filePath)
       }
+      clearTimeout(timer)
+      timer = setTimeout(rebuild, rebuildDelayMs)
     }
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return await context.dispose()
+    try {
+      watcher = watchFile(filePath, { signal }, onChange)
+      watcher.on('error', (error) => console.error(error.message))
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
     }
-    throw err
+  }
+
+  try {
+    for (const entryPoint of new Set(Object.values(entryPointSourceMap))) {
+      watchEntryPoint(path.join(projectRoot, entryPoint))
+    }
+    await new Promise((resolve) =>
+      signal.addEventListener('abort', resolve, { once: true }),
+    )
+    return await context.dispose()
+  } finally {
+    clearTimeout(timer)
   }
 }
 
