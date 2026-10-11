@@ -723,123 +723,139 @@ describe('pnpm symlinked node_modules', () => {
       'node_modules/.pnpm/widget@1.0.0/node_modules/widget/dist/unused.js',
   }
 
-  test('compileEntryPoints names symlinked dependencies', {
-    skip: symlinkSkip,
-  }, async () => {
-    const workspace = await makePnpmWorkspace()
-    try {
-      const [entryPoints, external] = await esimport.compileEntryPoints(workspace)
-      assert.deepEqual(entryPoints, {
-        'pnpm-app': 'src/index.js',
-        leftpad: 'node_modules/.pnpm/leftpad@1.0.0/node_modules/leftpad/index.js',
-        'lodash.escape':
-          'node_modules/.pnpm/lodash.escape@4.0.1/node_modules/lodash.escape/index.js',
-        ...widgetEntries,
-      })
-      assert.deepEqual(
-        external.sort(),
-        [
-          'pnpm-app',
+  test(
+    'compileEntryPoints names symlinked dependencies',
+    {
+      skip: symlinkSkip,
+    },
+    async () => {
+      const workspace = await makePnpmWorkspace()
+      try {
+        const [entryPoints, external] = await esimport.compileEntryPoints(workspace)
+        assert.deepEqual(entryPoints, {
+          'pnpm-app': 'src/index.js',
+          leftpad: 'node_modules/.pnpm/leftpad@1.0.0/node_modules/leftpad/index.js',
+          'lodash.escape':
+            'node_modules/.pnpm/lodash.escape@4.0.1/node_modules/lodash.escape/index.js',
+          ...widgetEntries,
+        })
+        assert.deepEqual(
+          external.sort(),
+          [
+            'pnpm-app',
+            'leftpad',
+            'lodash.escape',
+            'widget/chart.js',
+            'widget/index.js',
+            'widget/unused.js',
+            'widget',
+          ].sort(),
+        )
+      } finally {
+        await fs.rm(workspace, { recursive: true, force: true })
+      }
+    },
+  )
+
+  test(
+    'bundleExports resolves a symlinked package',
+    {
+      skip: symlinkSkip,
+    },
+    async () => {
+      const workspace = await makePnpmWorkspace()
+      try {
+        assert.deepEqual(
+          await esimport.bundleExports(
+            path.join(workspace, 'node_modules', 'widget'),
+            workspace,
+          ),
+          widgetEntries,
+        )
+      } finally {
+        await fs.rm(workspace, { recursive: true, force: true })
+      }
+    },
+  )
+
+  test(
+    'expandEntryPoints resolves symlinked subpaths',
+    {
+      skip: symlinkSkip,
+    },
+    async () => {
+      const workspace = await makePnpmWorkspace()
+      try {
+        assert.deepEqual(
+          await esimport.expandEntryPoints(
+            'widget',
+            { './*': './dist/*' },
+            path.join(workspace, 'node_modules', 'widget'),
+            workspace,
+          ),
+          widgetEntries,
+        )
+      } finally {
+        await fs.rm(workspace, { recursive: true, force: true })
+      }
+    },
+  )
+
+  test(
+    'run names and treeshakes dependency entries through a symlinked project',
+    {
+      skip: symlinkSkip,
+    },
+    async () => {
+      const workspace = await makePnpmWorkspace()
+      const outputRoot = await tempDir('esimport-pnpm-out-')
+      const outputDir = path.join(outputRoot, 'out')
+      const projectLink = path.join(outputRoot, 'pnpm-app')
+      await fs.symlink(workspace, projectLink, 'junction')
+      try {
+        const result = await esimport.run(projectLink, outputDir, {
+          watch: false,
+          verbose: false,
+          treeshake: true,
+        })
+        assert.deepEqual(Object.keys(result.imports).sort(), [
           'leftpad',
           'lodash.escape',
+          'pnpm-app',
           'widget/chart.js',
-          'widget/index.js',
-          'widget/unused.js',
-          'widget',
-        ].sort(),
-      )
-    } finally {
-      await fs.rm(workspace, { recursive: true, force: true })
-    }
-  })
-
-  test('bundleExports resolves a symlinked package', {
-    skip: symlinkSkip,
-  }, async () => {
-    const workspace = await makePnpmWorkspace()
-    try {
-      assert.deepEqual(
-        await esimport.bundleExports(
-          path.join(workspace, 'node_modules', 'widget'),
-          workspace,
-        ),
-        widgetEntries,
-      )
-    } finally {
-      await fs.rm(workspace, { recursive: true, force: true })
-    }
-  })
-
-  test('expandEntryPoints resolves symlinked subpaths', {
-    skip: symlinkSkip,
-  }, async () => {
-    const workspace = await makePnpmWorkspace()
-    try {
-      assert.deepEqual(
-        await esimport.expandEntryPoints(
-          'widget',
-          { './*': './dist/*' },
-          path.join(workspace, 'node_modules', 'widget'),
-          workspace,
-        ),
-        widgetEntries,
-      )
-    } finally {
-      await fs.rm(workspace, { recursive: true, force: true })
-    }
-  })
-
-  test('run names and treeshakes dependency entries through a symlinked project', {
-    skip: symlinkSkip,
-  }, async () => {
-    const workspace = await makePnpmWorkspace()
-    const outputRoot = await tempDir('esimport-pnpm-out-')
-    const outputDir = path.join(outputRoot, 'out')
-    const projectLink = path.join(outputRoot, 'pnpm-app')
-    await fs.symlink(workspace, projectLink, 'junction')
-    try {
-      const result = await esimport.run(projectLink, outputDir, {
-        watch: false,
-        verbose: false,
-        treeshake: true,
-      })
-      assert.deepEqual(Object.keys(result.imports).sort(), [
-        'leftpad',
-        'lodash.escape',
-        'pnpm-app',
-        'widget/chart.js',
-      ])
-      assert.deepEqual(
-        Object.keys(result.integrity).sort(),
-        Object.values(result.imports).sort(),
-      )
-      const files = []
-      for (const entry of await fs.readdir(outputDir, { recursive: true })) {
-        if ((await fs.stat(path.join(outputDir, entry))).isFile()) {
-          files.push(entry)
+        ])
+        assert.deepEqual(
+          Object.keys(result.integrity).sort(),
+          Object.values(result.imports).sort(),
+        )
+        const files = []
+        for (const entry of await fs.readdir(outputDir, { recursive: true })) {
+          if ((await fs.stat(path.join(outputDir, entry))).isFile()) {
+            files.push(entry)
+          }
         }
+        const outputFiles = files.join('\n')
+        assert.match(outputFiles, /^importmap\.json$/m)
+        assert.match(
+          outputFiles,
+          /^node_modules\/\.pnpm\/leftpad@1\.0\.0\/node_modules\/leftpad\/index-.*\.js$/m,
+        )
+        assert.match(
+          outputFiles,
+          /^node_modules\/\.pnpm\/lodash\.escape@4\.0\.1\/node_modules\/lodash\.escape\/index-.*\.js$/m,
+        )
+        assert.match(
+          outputFiles,
+          /^node_modules\/\.pnpm\/widget@1\.0\.0\/node_modules\/widget\/dist\/chart-.*\.js$/m,
+        )
+        assert.doesNotMatch(outputFiles, /widget\/dist\/index-/)
+        assert.doesNotMatch(outputFiles, /widget\/dist\/unused-/)
+      } finally {
+        await fs.rm(outputRoot, { recursive: true, force: true })
+        await fs.rm(workspace, { recursive: true, force: true })
       }
-      const outputFiles = files.join('\n')
-      assert.match(outputFiles, /^importmap\.json$/m)
-      assert.match(
-        outputFiles,
-        /^node_modules\/\.pnpm\/leftpad@1\.0\.0\/node_modules\/leftpad\/index-.*\.js$/m,
-      )
-      assert.match(
-        outputFiles,
-        /^node_modules\/\.pnpm\/lodash\.escape@4\.0\.1\/node_modules\/lodash\.escape\/index-.*\.js$/m,
-      )
-      assert.match(
-        outputFiles,
-        /^node_modules\/\.pnpm\/widget@1\.0\.0\/node_modules\/widget\/dist\/chart-.*\.js$/m,
-      )
-      assert.doesNotMatch(outputFiles, /widget\/dist\/index-/)
-      assert.doesNotMatch(outputFiles, /widget\/dist\/unused-/)
-    } finally {
-      await fs.rm(outputRoot, { recursive: true, force: true })
-      await fs.rm(workspace, { recursive: true, force: true })
-    }
-  })
+    },
+  )
 })
 
 describe('isMainModule', () => {
