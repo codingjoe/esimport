@@ -38,7 +38,7 @@ repos:
         # test fixtures vendor third-party node_modules on purpose
         exclude: (^|/)node_modules/
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.71.0
+    rev: v0.74.0
     hooks:
       - id: oxfmt
         exclude: (^|/)node_modules/
